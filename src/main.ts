@@ -1,0 +1,870 @@
+import { createClient, type Session, type SupabaseClient } from "@supabase/supabase-js";
+import "./style.css";
+
+interface AccountProfile {
+  id: string;
+  displayName: string;
+  email: string | null;
+  roles: string[];
+}
+
+const app = document.querySelector<HTMLDivElement>("#app");
+if (!app) throw new Error("Application root was not found.");
+
+const supabaseUrl = import.meta.env.VITE_SUPABASE_URL;
+const supabasePublishableKey = import.meta.env.VITE_SUPABASE_PUBLISHABLE_KEY;
+const supabase = supabaseUrl && supabasePublishableKey
+  ? createClient(supabaseUrl, supabasePublishableKey)
+  : null;
+
+const publicMarkup = `
+  <nav class="nav">
+    <a class="brand" href="#top">THE IVY <span>PIZZA</span></a>
+    <div class="navlinks"><a href="#menu">Menu</a><a href="#experience">Experience</a><a href="#visit">Visit us</a></div>
+    <button class="account-open" id="account-open" type="button">My account</button>
+  </nav>
+  <main id="top">
+    <section class="hero">
+      <div class="hero-copy">
+        <div class="eyebrow">Pizza • Burgers • Fast delivery</div>
+        <h1>Abuja's new<br />pizza ritual.</h1>
+        <p>Premium fast food with unmistakable Ivy character: signature pizzas, flame-grilled burgers and a faster way to collect your favourites.</p>
+        <div class="buttons"><a class="btn" href="#menu">Explore the menu</a><a class="btn alt" href="#visit">Find The Ivy Pizza</a></div>
+      </div>
+    </section>
+    <div class="strip"><b>Freshly prepared</b><b>Quick pickup</b><b>Delivery ready</b><b>Made for Abuja</b></div>
+    <section class="section" id="experience">
+      <div class="eyebrow dark">The Ivy experience</div><h2>Fast food, beautifully done.</h2>
+      <p class="lead">The Ivy Pizza brings together a quick-service pizza kitchen, flame-grilled classics and a warm space to dine, collect and go.</p>
+      <div class="gallery"><img src="/ivy-fast-food-interior-dining.png" alt="The Ivy Pizza dining room" /><img src="/ivy-fast-food-interior-pickup.png" alt="The Ivy Pizza pickup counter" /></div>
+    </section>
+    <section class="section menu" id="menu">
+      <div class="eyebrow">Our menu</div><h2>Made to order. Made your way.</h2>
+      <div class="tabs"><span class="tab">Pizzas</span><span class="tab">Burgers</span><span class="tab">Extras</span></div>
+      <div class="items">
+        <article class="item"><h3>Ivy Signature Chicken</h3><p>Ivy signature sauce, grilled chicken, mozzarella, sweetcorn, onions and Ivy herbs.</p></article>
+        <article class="item"><h3>Ivy Signature Beef</h3><p>Seasoned minced beef, Ivy signature sauce, mozzarella, onions, peppers and Ivy seasoning.</p></article>
+        <article class="item"><h3>Ivy Suya Pizza</h3><p>Spiced suya beef, onions, peppers, mozzarella and a suya pepper finish.</p></article>
+        <article class="item"><h3>Ivy Pepperoni Pizza</h3><p>Tomato sauce, generous pepperoni, mozzarella and Italian herbs.</p></article>
+        <article class="item"><h3>Ivy Margarita Pizza</h3><p>Tomato sauce, mozzarella, fresh tomatoes, basil and olive oil.</p></article>
+        <article class="item"><h3>Ivy Classic Burger</h3><p>Flame-grilled 4 oz beef patty, mayo, lettuce, tomato, pickles, ketchup and onions on a brioche bun.</p></article>
+        <article class="item"><h3>Ivy Double Classic</h3><p>Two flame-grilled 4 oz beef patties with classic toppings on toasted brioche.</p></article>
+        <article class="item"><h3>Chicken Burger &amp; Wrap</h3><p>Choose a brioche chicken burger or a chicken wrap with fresh salad and Ivy sauce.</p></article>
+      </div>
+      <p class="note">Add American cheese, beef bacon, jalapeños, guacamole, extra patty, extra chicken, pepperoni or mozzarella.</p>
+    </section>
+    <section class="section" id="visit"><div class="visit">
+      <img src="/ivy-fast-food-interior-counter.png" alt="Open kitchen" />
+      <div class="card"><div class="eyebrow dark">Order your way</div><h2>Eat in, pick up or get it delivered.</h2>
+        <p class="lead">Our open kitchen, dedicated collection point and delivery-ready setup are designed for your day. Location, opening hours and online ordering will be announced soon.</p>
+        <div class="buttons"><a class="btn" href="mailto:hello@theivypizza.com?subject=The%20Ivy%20Pizza%20enquiry">Contact us</a></div>
+      </div>
+    </div></section>
+  </main>
+  <footer class="footer"><b>THE IVY PIZZA</b><span>Pizza • Burgers • Abuja</span><span>Coming soon</span></footer>
+  <dialog class="account-dialog" id="account-dialog" aria-labelledby="account-title">
+    <div class="account-panel">
+      <button class="dialog-close" id="account-close" type="button" aria-label="Close account dialog">×</button>
+      <div class="eyebrow dark">The Ivy Pizza</div>
+      <h2 id="account-title">Your account</h2>
+      <p class="account-intro">Sign in to your Ivy account or create one to get started.</p>
+      <div class="account-tabs" id="account-tabs" role="tablist" aria-label="Account access">
+        <button type="button" class="account-tab active" data-mode="signin" role="tab" aria-selected="true">Sign in</button>
+        <button type="button" class="account-tab" data-mode="signup" role="tab" aria-selected="false">Create account</button>
+      </div>
+      <form id="auth-form">
+        <label id="name-field" class="form-field" hidden>Full name<input name="display_name" autocomplete="name" maxlength="100" /></label>
+        <label class="form-field">Email address<input name="email" type="email" autocomplete="email" required maxlength="254" /></label>
+        <label class="form-field">Password<input name="password" type="password" autocomplete="current-password" required minlength="8" maxlength="128" /></label>
+        <button class="btn account-submit" id="auth-submit" type="submit">Sign in</button>
+      </form>
+      <div id="profile-card" class="profile-card" hidden>
+        <p class="profile-name" id="profile-name"></p>
+        <p class="profile-email" id="profile-email"></p>
+        <p class="profile-roles" id="profile-roles"></p>
+        <button class="btn account-submit" id="sign-out" type="button">Sign out</button>
+      </div>
+      <p class="auth-message" id="auth-message" role="status" aria-live="polite"></p>
+      <p class="auth-config-note" id="auth-config-note" hidden>Account access is being configured. Please try again later.</p>
+    </div>
+  </dialog>
+`;
+
+const kitchenMarkup = `
+  <div class="kitchen-app">
+    <header class="kitchen-topbar">
+      <a class="brand kitchen-brand" href="/">THE IVY <span>PIZZA</span></a>
+      <div class="kitchen-top-actions">
+        <span class="kitchen-staff-name" id="kitchen-staff-name"></span>
+        <button class="kitchen-top-button" id="kitchen-refresh" type="button" hidden>Refresh queue</button>
+        <button class="kitchen-top-button" id="kitchen-sign-out" type="button" hidden>Sign out</button>
+      </div>
+    </header>
+    <main class="kitchen-shell">
+      <section class="kitchen-login" id="kitchen-login">
+        <div class="eyebrow dark">Staff access</div>
+        <h1>Kitchen screen</h1>
+        <p>Sign in with your Ivy staff account to view active orders.</p>
+        <form id="kitchen-login-form">
+          <label class="form-field">Email address<input name="email" type="email" autocomplete="username" required maxlength="254" /></label>
+          <label class="form-field">Password<input name="password" type="password" autocomplete="current-password" required minlength="8" maxlength="128" /></label>
+          <button class="btn account-submit" id="kitchen-login-submit" type="submit">Sign in</button>
+        </form>
+        <p class="kitchen-message" id="kitchen-login-message" role="status" aria-live="polite"></p>
+        <p class="auth-config-note" id="kitchen-config-note" hidden>Staff sign-in is not configured. Please contact the site administrator.</p>
+      </section>
+      <section class="kitchen-denied" id="kitchen-denied" hidden>
+        <div class="eyebrow dark">Staff access</div>
+        <h1>Kitchen access required</h1>
+        <p>This account does not have a kitchen, manager, or owner role. Ask an owner to grant the correct staff role.</p>
+        <button class="btn" id="kitchen-denied-sign-out" type="button">Sign out</button>
+      </section>
+      <section class="kitchen-board" id="kitchen-board" hidden>
+        <div class="kitchen-board-heading">
+          <div><div class="eyebrow dark">The Ivy Pizza</div><h1>Kitchen queue</h1><p>Active orders, oldest first. The queue refreshes automatically.</p></div>
+          <div class="kitchen-live"><span></span> Live queue</div>
+        </div>
+        <p class="kitchen-message" id="kitchen-queue-message" role="status" aria-live="polite"></p>
+        <div class="kitchen-order-grid" id="kitchen-order-grid" aria-live="polite"></div>
+      </section>
+    </main>
+  </div>
+`;
+
+const hrMarkup = `
+  <div class="kitchen-app">
+    <header class="kitchen-topbar">
+      <a class="brand kitchen-brand" href="/">THE IVY <span>PIZZA</span></a>
+      <div class="kitchen-top-actions">
+        <span class="kitchen-staff-name" id="hr-staff-name"></span>
+        <button class="kitchen-top-button" id="hr-refresh" type="button" hidden>Refresh staff</button>
+        <button class="kitchen-top-button" id="hr-sign-out" type="button" hidden>Sign out</button>
+      </div>
+    </header>
+    <main class="kitchen-shell hr-shell">
+      <section class="kitchen-login" id="hr-login">
+        <div class="eyebrow dark">Human resources</div>
+        <h1>Staff access</h1>
+        <p>Sign in with an HR or owner account to manage employed staff and their roles.</p>
+        <form id="hr-login-form">
+          <label class="form-field">Email address<input name="email" type="email" autocomplete="username" required maxlength="254" /></label>
+          <label class="form-field">Password<input name="password" type="password" autocomplete="current-password" required minlength="8" maxlength="128" /></label>
+          <button class="btn account-submit" id="hr-login-submit" type="submit">Sign in</button>
+        </form>
+        <p class="kitchen-message" id="hr-login-message" role="status" aria-live="polite"></p>
+        <p class="auth-config-note" id="hr-config-note" hidden>Staff sign-in is not configured. Please contact the site administrator.</p>
+      </section>
+      <section class="kitchen-denied" id="hr-denied" hidden>
+        <div class="eyebrow dark">Human resources</div>
+        <h1>HR access required</h1>
+        <p>This account does not have an HR or owner role. Ask an owner to grant the correct access.</p>
+        <button class="btn" id="hr-denied-sign-out" type="button">Sign out</button>
+      </section>
+      <section class="hr-board" id="hr-board" hidden>
+        <div class="kitchen-board-heading">
+          <div><div class="eyebrow dark">Human resources</div><h1>Staff access</h1><p>Confirm employment and assign the role needed for each staff member.</p></div>
+        </div>
+        <div class="hr-layout">
+          <section class="hr-card">
+            <h2>Confirm employment &amp; assign role</h2>
+            <p>The staff member must first create an account using this email address.</p>
+            <form id="hr-assign-form">
+              <label class="form-field">Staff account email<input name="email" type="email" autocomplete="off" required maxlength="254" /></label>
+              <label class="form-field">Employee number <span class="field-optional">Optional</span><input name="employeeNumber" type="text" maxlength="60" /></label>
+              <label class="form-field">Role to assign<select name="role" required>
+                <option value="kitchen">Kitchen</option>
+                <option value="rider">Rider</option>
+                <option value="manager">Manager</option>
+                <option value="hr" id="hr-role-option" hidden>HR (owner only)</option>
+              </select></label>
+              <button class="btn account-submit" id="hr-assign-submit" type="submit">Confirm employment &amp; assign</button>
+            </form>
+            <p class="kitchen-message" id="hr-assign-message" role="status" aria-live="polite"></p>
+            <p class="hr-policy">HR can grant kitchen, rider, and manager roles. Only an owner can grant the HR role. Owner access is managed through the trusted owner process.</p>
+          </section>
+          <section class="hr-card hr-directory-card">
+            <div class="hr-directory-heading"><div><h2>Staff directory</h2><p>Only employment records are shown here.</p></div></div>
+            <p class="kitchen-message" id="hr-directory-message" role="status" aria-live="polite"></p>
+            <div class="hr-directory" id="hr-directory"></div>
+          </section>
+        </div>
+      </section>
+    </main>
+  </div>
+`;
+
+const isKitchenScreen = window.location.pathname.replace(/\/+$/, "") === "/kitchen";
+const isHrScreen = window.location.pathname.replace(/\/+$/, "") === "/hr";
+app.innerHTML = isKitchenScreen ? kitchenMarkup : isHrScreen ? hrMarkup : publicMarkup;
+
+if (isKitchenScreen) {
+  initializeKitchenScreen(supabase);
+} else if (isHrScreen) {
+  initializeHrScreen(supabase);
+} else {
+
+const dialog = document.querySelector<HTMLDialogElement>("#account-dialog")!;
+const authForm = document.querySelector<HTMLFormElement>("#auth-form")!;
+const authMessage = document.querySelector<HTMLParagraphElement>("#auth-message")!;
+const accountTabs = document.querySelector<HTMLDivElement>("#account-tabs")!;
+const nameField = document.querySelector<HTMLLabelElement>("#name-field")!;
+const profileCard = document.querySelector<HTMLDivElement>("#profile-card")!;
+const configNote = document.querySelector<HTMLParagraphElement>("#auth-config-note")!;
+let authMode: "signin" | "signup" = "signin";
+let profileLoadGeneration = 0;
+
+function setMessage(message: string, kind: "info" | "error" = "info"): void {
+  authMessage.textContent = message;
+  authMessage.dataset.kind = kind;
+}
+
+function setAuthMode(mode: "signin" | "signup"): void {
+  authMode = mode;
+  document.querySelectorAll<HTMLButtonElement>("[data-mode]").forEach((button) => {
+    const active = button.dataset.mode === mode;
+    button.classList.toggle("active", active);
+    button.setAttribute("aria-selected", String(active));
+  });
+  nameField.hidden = mode !== "signup";
+  nameField.querySelector("input")?.toggleAttribute("required", mode === "signup");
+  authForm.querySelector<HTMLInputElement>('[name="password"]')?.setAttribute(
+    "autocomplete",
+    mode === "signup" ? "new-password" : "current-password",
+  );
+  document.querySelector<HTMLButtonElement>("#auth-submit")!.textContent = mode === "signup" ? "Create account" : "Sign in";
+  setMessage("");
+}
+
+function showAccount(): void {
+  if (!dialog.open) dialog.showModal();
+}
+
+function showSignedOut(): void {
+  profileLoadGeneration += 1;
+  accountTabs.hidden = false;
+  authForm.hidden = false;
+  profileCard.hidden = true;
+}
+
+async function loadProfile(session: Session): Promise<AccountProfile> {
+  const response = await fetch("/api/me", {
+    headers: { Authorization: `Bearer ${session.access_token}` },
+  });
+  if (!response.ok) {
+    if (response.status === 403) throw new Error("Your account profile is still being prepared. Please try again shortly.");
+    if (response.status === 401) throw new Error("Your session expired. Please sign in again.");
+    throw new Error("We could not load your account. Please try again.");
+  }
+  return response.json() as Promise<AccountProfile>;
+}
+
+async function showSignedIn(session: Session): Promise<void> {
+  const generation = ++profileLoadGeneration;
+  accountTabs.hidden = true;
+  authForm.hidden = true;
+  profileCard.hidden = false;
+  setMessage("Loading your account…");
+  try {
+    const profile = await loadProfile(session);
+    if (generation !== profileLoadGeneration) return;
+    document.querySelector<HTMLParagraphElement>("#profile-name")!.textContent = profile.displayName;
+    document.querySelector<HTMLParagraphElement>("#profile-email")!.textContent = profile.email ?? "";
+    document.querySelector<HTMLParagraphElement>("#profile-roles")!.textContent = profile.roles.join(" · ");
+    setMessage("You’re signed in.");
+  } catch (error) {
+    if (generation !== profileLoadGeneration) return;
+    setMessage(error instanceof Error ? error.message : "We could not load your account.", "error");
+  }
+}
+
+document.querySelector<HTMLButtonElement>("#account-open")!.addEventListener("click", showAccount);
+document.querySelector<HTMLButtonElement>("#account-close")!.addEventListener("click", () => dialog.close());
+dialog.addEventListener("click", (event) => {
+  if (event.target === dialog) dialog.close();
+});
+document.querySelectorAll<HTMLButtonElement>("[data-mode]").forEach((button) => {
+  button.addEventListener("click", () => setAuthMode(button.dataset.mode === "signup" ? "signup" : "signin"));
+});
+
+if (!supabase) {
+  configNote.hidden = false;
+  authForm.querySelectorAll<HTMLInputElement | HTMLButtonElement>("input, button").forEach((element) => {
+    element.disabled = true;
+  });
+  accountTabs.querySelectorAll("button").forEach((button) => ((button as HTMLButtonElement).disabled = true));
+} else {
+  authForm.addEventListener("submit", async (event) => {
+    event.preventDefault();
+    const formData = new FormData(authForm);
+    const email = String(formData.get("email") ?? "").trim();
+    const password = String(formData.get("password") ?? "");
+    const submit = document.querySelector<HTMLButtonElement>("#auth-submit")!;
+    submit.disabled = true;
+    setMessage(authMode === "signup" ? "Creating your account…" : "Signing in…");
+
+    try {
+      if (authMode === "signup") {
+        const displayName = String(formData.get("display_name") ?? "").trim();
+        const { data, error } = await supabase.auth.signUp({
+          email,
+          password,
+          options: { data: { display_name: displayName } },
+        });
+        if (error) throw error;
+        if (!data.session) {
+          setMessage("Account created. Check your email to confirm it, then sign in here.");
+        } else {
+          await showSignedIn(data.session);
+        }
+      } else {
+        const { data, error } = await supabase.auth.signInWithPassword({ email, password });
+        if (error) throw error;
+        await showSignedIn(data.session);
+      }
+    } catch (error) {
+      setMessage(error instanceof Error ? error.message : "We could not complete that request.", "error");
+    } finally {
+      submit.disabled = false;
+    }
+  });
+
+  document.querySelector<HTMLButtonElement>("#sign-out")!.addEventListener("click", async () => {
+    const { error } = await supabase.auth.signOut();
+    if (error) {
+      setMessage("We could not sign you out. Please try again.", "error");
+      return;
+    }
+    showSignedOut();
+    setAuthMode("signin");
+    setMessage("You’re signed out.");
+  });
+
+  void supabase.auth.getSession().then(({ data, error }) => {
+    if (error) {
+      showSignedOut();
+      setMessage("We could not restore your session. Please sign in again.", "error");
+      return;
+    }
+    if (data.session) void showSignedIn(data.session);
+  });
+
+  supabase.auth.onAuthStateChange((_event, session) => {
+    if (session) void showSignedIn(session);
+    else showSignedOut();
+  });
+}
+
+setAuthMode("signin");
+}
+
+interface KitchenOrderItem {
+  item: unknown;
+  quantity: number;
+}
+
+interface KitchenOrder {
+  id: string;
+  order_number: string;
+  fulfillment_status: "accepted" | "preparing" | "ready_for_delivery";
+  created_at: string;
+  items: KitchenOrderItem[];
+}
+
+interface KitchenProfile {
+  displayName: string;
+  roles: string[];
+}
+
+function initializeKitchenScreen(client: SupabaseClient | null): void {
+  const loginPanel = document.querySelector<HTMLElement>("#kitchen-login")!;
+  const loginForm = document.querySelector<HTMLFormElement>("#kitchen-login-form")!;
+  const loginMessage = document.querySelector<HTMLParagraphElement>("#kitchen-login-message")!;
+  const configNote = document.querySelector<HTMLParagraphElement>("#kitchen-config-note")!;
+  const deniedPanel = document.querySelector<HTMLElement>("#kitchen-denied")!;
+  const board = document.querySelector<HTMLElement>("#kitchen-board")!;
+  const queueMessage = document.querySelector<HTMLParagraphElement>("#kitchen-queue-message")!;
+  const orderGrid = document.querySelector<HTMLDivElement>("#kitchen-order-grid")!;
+  const refreshButton = document.querySelector<HTMLButtonElement>("#kitchen-refresh")!;
+  const signOutButton = document.querySelector<HTMLButtonElement>("#kitchen-sign-out")!;
+  const staffName = document.querySelector<HTMLSpanElement>("#kitchen-staff-name")!;
+  let currentSession: Session | null = null;
+  let refreshTimer: number | undefined;
+  let loadGeneration = 0;
+
+  function showLogin(message = ""): void {
+    loadGeneration += 1;
+    currentSession = null;
+    loginPanel.hidden = false;
+    deniedPanel.hidden = true;
+    board.hidden = true;
+    refreshButton.hidden = true;
+    signOutButton.hidden = true;
+    staffName.textContent = "";
+    loginMessage.textContent = message;
+  }
+
+  function clearOrders(): void {
+    orderGrid.replaceChildren();
+  }
+
+  function itemName(snapshot: unknown): string {
+    if (typeof snapshot === "string") return snapshot;
+    if (typeof snapshot !== "object" || snapshot === null || Array.isArray(snapshot)) return "Menu item";
+    const record = snapshot as Record<string, unknown>;
+    for (const key of ["name", "item_name", "title"]) {
+      if (typeof record[key] === "string" && record[key]) return record[key] as string;
+    }
+    return "Menu item";
+  }
+
+  function renderOrders(orders: KitchenOrder[]): void {
+    orderGrid.replaceChildren();
+    if (orders.length === 0) {
+      const empty = document.createElement("div");
+      empty.className = "kitchen-empty";
+      empty.innerHTML = '<div class="kitchen-empty-mark">✓</div><h2>All caught up</h2><p>New accepted orders will appear here.</p>';
+      orderGrid.append(empty);
+      return;
+    }
+
+    for (const order of orders) {
+      const card = document.createElement("article");
+      card.className = "kitchen-order-card";
+      const top = document.createElement("div");
+      top.className = "kitchen-order-top";
+      const number = document.createElement("h2");
+      number.textContent = order.order_number;
+      const status = document.createElement("span");
+      status.className = `kitchen-status status-${order.fulfillment_status}`;
+      status.textContent = order.fulfillment_status.replaceAll("_", " ");
+      top.append(number, status);
+      card.append(top);
+
+      const time = document.createElement("p");
+      time.className = "kitchen-order-time";
+      const createdAt = new Date(order.created_at);
+      time.textContent = Number.isNaN(createdAt.getTime())
+        ? "Order time unavailable"
+        : `Placed ${createdAt.toLocaleTimeString("en-NG", { hour: "numeric", minute: "2-digit" })}`;
+      card.append(time);
+
+      const itemList = document.createElement("ul");
+      itemList.className = "kitchen-items";
+      for (const item of order.items) {
+        const row = document.createElement("li");
+        const quantity = document.createElement("span");
+        quantity.className = "kitchen-item-quantity";
+        quantity.textContent = `${item.quantity}×`;
+        const name = document.createElement("span");
+        name.textContent = itemName(item.item);
+        row.append(quantity, name);
+        itemList.append(row);
+      }
+      card.append(itemList);
+
+      if (order.fulfillment_status !== "ready_for_delivery") {
+        const action = document.createElement("button");
+        action.type = "button";
+        action.className = "btn kitchen-order-action";
+        action.textContent = order.fulfillment_status === "accepted" ? "Start preparing" : "Mark ready";
+        action.addEventListener("click", () => void advanceOrder(order, action));
+        card.append(action);
+      }
+      orderGrid.append(card);
+    }
+  }
+
+  async function fetchWithSession(url: string, init: RequestInit = {}): Promise<Response> {
+    if (!currentSession) throw new Error("Your session has ended. Please sign in again.");
+    const headers = new Headers(init.headers);
+    headers.set("Authorization", `Bearer ${currentSession.access_token}`);
+    if (init.body) headers.set("Content-Type", "application/json");
+    return fetch(url, { ...init, headers });
+  }
+
+  async function refreshQueue(quiet = false): Promise<void> {
+    if (!currentSession) return;
+    if (!quiet) {
+      refreshButton.disabled = true;
+      queueMessage.textContent = "Refreshing orders…";
+    }
+    try {
+      const response = await fetchWithSession("/api/kitchen/orders");
+      if (!response.ok) {
+        if (response.status === 401) throw new Error("Your session expired. Sign in again to continue.");
+        throw new Error("Could not load orders. Try refreshing the queue.");
+      }
+      const result = (await response.json()) as { orders: KitchenOrder[] };
+      renderOrders(result.orders);
+      queueMessage.textContent = `Updated ${new Date().toLocaleTimeString("en-NG", { hour: "numeric", minute: "2-digit" })}`;
+    } catch (error) {
+      queueMessage.textContent = error instanceof Error ? error.message : "Could not load orders.";
+    } finally {
+      refreshButton.disabled = false;
+    }
+  }
+
+  async function advanceOrder(order: KitchenOrder, button: HTMLButtonElement): Promise<void> {
+    button.disabled = true;
+    button.textContent = "Saving…";
+    const nextStatus = order.fulfillment_status === "accepted" ? "preparing" : "ready_for_delivery";
+    try {
+      const response = await fetchWithSession(`/api/kitchen/orders/${encodeURIComponent(order.id)}/status`, {
+        method: "PATCH",
+        body: JSON.stringify({ status: nextStatus }),
+      });
+      if (!response.ok) {
+        const result = (await response.json().catch(() => ({}))) as { error?: string };
+        throw new Error(result.error ?? "Could not update this order.");
+      }
+      queueMessage.textContent = `${order.order_number} moved to ${nextStatus.replaceAll("_", " ")}.`;
+      await refreshQueue(true);
+    } catch (error) {
+      queueMessage.textContent = error instanceof Error ? error.message : "Could not update this order.";
+      button.disabled = false;
+      button.textContent = order.fulfillment_status === "accepted" ? "Start preparing" : "Mark ready";
+    }
+  }
+
+  async function loadStaffScreen(session: Session): Promise<void> {
+    const generation = ++loadGeneration;
+    currentSession = session;
+    loginMessage.textContent = "Checking staff access…";
+    try {
+      const response = await fetchWithSession("/api/me");
+      if (!response.ok) {
+        if (response.status === 401) throw new Error("Your session expired. Please sign in again.");
+        throw new Error("Could not verify this account. Please try again.");
+      }
+      const profile = (await response.json()) as KitchenProfile;
+      if (generation !== loadGeneration) return;
+      const permitted = profile.roles.some((role) => ["kitchen", "manager", "owner"].includes(role));
+      if (!permitted) {
+        loginPanel.hidden = true;
+        deniedPanel.hidden = false;
+        board.hidden = true;
+        refreshButton.hidden = true;
+        signOutButton.hidden = false;
+        staffName.textContent = profile.displayName;
+        return;
+      }
+
+      loginPanel.hidden = true;
+      deniedPanel.hidden = true;
+      board.hidden = false;
+      refreshButton.hidden = false;
+      signOutButton.hidden = false;
+      staffName.textContent = profile.displayName;
+      await refreshQueue();
+      if (refreshTimer) window.clearInterval(refreshTimer);
+      refreshTimer = window.setInterval(() => void refreshQueue(true), 15_000);
+    } catch (error) {
+      if (generation !== loadGeneration) return;
+      showLogin(error instanceof Error ? error.message : "Could not sign in.");
+    }
+  }
+
+  if (!client) {
+    configNote.hidden = false;
+    loginForm.querySelectorAll<HTMLInputElement | HTMLButtonElement>("input, button").forEach((element) => {
+      element.disabled = true;
+    });
+    return;
+  }
+  const authClient = client;
+
+  loginForm.addEventListener("submit", async (event) => {
+    event.preventDefault();
+    const submit = document.querySelector<HTMLButtonElement>("#kitchen-login-submit")!;
+    submit.disabled = true;
+    loginMessage.textContent = "Signing in…";
+    const formData = new FormData(loginForm);
+    try {
+      const { data, error } = await authClient.auth.signInWithPassword({
+        email: String(formData.get("email") ?? "").trim(),
+        password: String(formData.get("password") ?? ""),
+      });
+      if (error) throw error;
+      await loadStaffScreen(data.session);
+    } catch (error) {
+      loginMessage.textContent = error instanceof Error ? error.message : "Could not sign in.";
+    } finally {
+      submit.disabled = false;
+    }
+  });
+
+  async function signOut(): Promise<void> {
+    if (refreshTimer) window.clearInterval(refreshTimer);
+    refreshTimer = undefined;
+    const { error } = await authClient.auth.signOut();
+    if (error) {
+      queueMessage.textContent = "Could not sign out. Please try again.";
+      return;
+    }
+    clearOrders();
+    showLogin();
+  }
+
+  refreshButton.addEventListener("click", () => void refreshQueue());
+  signOutButton.addEventListener("click", () => void signOut());
+  document.querySelector<HTMLButtonElement>("#kitchen-denied-sign-out")!.addEventListener("click", () => void signOut());
+
+  void authClient.auth.getSession().then(({ data, error }) => {
+    if (error) {
+      showLogin("Could not restore your session. Please sign in again.");
+    } else if (data.session) {
+      void loadStaffScreen(data.session);
+    }
+  });
+
+  authClient.auth.onAuthStateChange((_event, session) => {
+    if (!session) {
+      if (refreshTimer) window.clearInterval(refreshTimer);
+      refreshTimer = undefined;
+      clearOrders();
+      showLogin();
+    } else {
+      currentSession = session;
+    }
+  });
+}
+
+interface HrStaffRecord {
+  id: string;
+  email: string | null;
+  displayName: string;
+  employmentStatus: "employed" | "inactive";
+  employeeNumber: string | null;
+  employedAt: string;
+  roles: string[];
+}
+
+function initializeHrScreen(client: SupabaseClient | null): void {
+  const loginPanel = document.querySelector<HTMLElement>("#hr-login")!;
+  const loginForm = document.querySelector<HTMLFormElement>("#hr-login-form")!;
+  const loginMessage = document.querySelector<HTMLParagraphElement>("#hr-login-message")!;
+  const configNote = document.querySelector<HTMLParagraphElement>("#hr-config-note")!;
+  const deniedPanel = document.querySelector<HTMLElement>("#hr-denied")!;
+  const board = document.querySelector<HTMLElement>("#hr-board")!;
+  const staffName = document.querySelector<HTMLSpanElement>("#hr-staff-name")!;
+  const signOutButton = document.querySelector<HTMLButtonElement>("#hr-sign-out")!;
+  const refreshButton = document.querySelector<HTMLButtonElement>("#hr-refresh")!;
+  const assignForm = document.querySelector<HTMLFormElement>("#hr-assign-form")!;
+  const assignMessage = document.querySelector<HTMLParagraphElement>("#hr-assign-message")!;
+  const directoryMessage = document.querySelector<HTMLParagraphElement>("#hr-directory-message")!;
+  const directory = document.querySelector<HTMLDivElement>("#hr-directory")!;
+  const hrRoleOption = document.querySelector<HTMLOptionElement>("#hr-role-option")!;
+  let currentSession: Session | null = null;
+  let loadGeneration = 0;
+
+  function showLogin(message = ""): void {
+    loadGeneration += 1;
+    currentSession = null;
+    loginPanel.hidden = false;
+    deniedPanel.hidden = true;
+    board.hidden = true;
+    signOutButton.hidden = true;
+    refreshButton.hidden = true;
+    staffName.textContent = "";
+    loginMessage.textContent = message;
+  }
+
+  async function fetchWithSession(url: string, init: RequestInit = {}): Promise<Response> {
+    if (!currentSession) throw new Error("Your session has ended. Please sign in again.");
+    const headers = new Headers(init.headers);
+    headers.set("Authorization", `Bearer ${currentSession.access_token}`);
+    if (init.body) headers.set("Content-Type", "application/json");
+    return fetch(url, { ...init, headers });
+  }
+
+  function renderDirectory(staff: HrStaffRecord[]): void {
+    directory.replaceChildren();
+    if (staff.length === 0) {
+      const empty = document.createElement("p");
+      empty.className = "hr-empty";
+      empty.textContent = "No staff records yet. Confirm employment and assign a role to add the first staff member.";
+      directory.append(empty);
+      return;
+    }
+
+    const table = document.createElement("table");
+    table.className = "hr-table";
+    const head = document.createElement("thead");
+    head.innerHTML = "<tr><th>Staff member</th><th>Role</th><th>Employment</th><th></th></tr>";
+    const body = document.createElement("tbody");
+    for (const member of staff) {
+      const row = document.createElement("tr");
+      const person = document.createElement("td");
+      const name = document.createElement("strong");
+      name.textContent = member.displayName;
+      const email = document.createElement("span");
+      email.textContent = member.email ?? "No email on file";
+      person.append(name, email);
+
+      const roles = document.createElement("td");
+      roles.textContent = member.roles.length ? member.roles.map((role) => role.replaceAll("_", " ")).join(", ") : "No role";
+
+      const employment = document.createElement("td");
+      const badge = document.createElement("span");
+      badge.className = `employment-badge ${member.employmentStatus}`;
+      badge.textContent = member.employmentStatus;
+      employment.append(badge);
+
+      const actions = document.createElement("td");
+      if (member.employmentStatus === "employed") {
+        const offboard = document.createElement("button");
+        offboard.type = "button";
+        offboard.className = "hr-offboard";
+        offboard.textContent = "End employment";
+        offboard.addEventListener("click", () => void offboardStaff(member, offboard));
+        actions.append(offboard);
+      }
+      row.append(person, roles, employment, actions);
+      body.append(row);
+    }
+    table.append(head, body);
+    const scroll = document.createElement("div");
+    scroll.className = "hr-table-scroll";
+    scroll.append(table);
+    directory.append(scroll);
+  }
+
+  async function loadDirectory(): Promise<void> {
+    directoryMessage.textContent = "Loading staff records…";
+    try {
+      const response = await fetchWithSession("/api/hr/staff");
+      const result = (await response.json().catch(() => ({}))) as { staff?: HrStaffRecord[]; error?: string };
+      if (!response.ok) throw new Error(result.error ?? "Could not load staff records.");
+      renderDirectory(result.staff ?? []);
+      directoryMessage.textContent = `${result.staff?.length ?? 0} staff record${result.staff?.length === 1 ? "" : "s"}`;
+    } catch (error) {
+      directoryMessage.textContent = error instanceof Error ? error.message : "Could not load staff records.";
+    }
+  }
+
+  async function offboardStaff(member: HrStaffRecord, button: HTMLButtonElement): Promise<void> {
+    if (!window.confirm(`End employment for ${member.displayName}? Their kitchen, manager, rider, and HR roles will be removed.`)) return;
+    button.disabled = true;
+    button.textContent = "Updating…";
+    try {
+      const response = await fetchWithSession(`/api/hr/staff/${encodeURIComponent(member.id)}/offboard`, { method: "PATCH" });
+      const result = (await response.json().catch(() => ({}))) as { error?: string };
+      if (!response.ok) throw new Error(result.error ?? "Could not update employment status.");
+      directoryMessage.textContent = `${member.displayName} was offboarded and staff roles were removed.`;
+      await loadDirectory();
+    } catch (error) {
+      directoryMessage.textContent = error instanceof Error ? error.message : "Could not update employment status.";
+      button.disabled = false;
+      button.textContent = "End employment";
+    }
+  }
+
+  async function loadHrScreen(session: Session): Promise<void> {
+    const generation = ++loadGeneration;
+    currentSession = session;
+    loginMessage.textContent = "Checking HR access…";
+    try {
+      const response = await fetchWithSession("/api/me");
+      if (!response.ok) throw new Error(response.status === 401 ? "Your session expired. Please sign in again." : "Could not verify this account.");
+      const profile = (await response.json()) as { displayName: string; roles: string[] };
+      if (generation !== loadGeneration) return;
+      const permitted = profile.roles.some((role) => ["hr", "owner"].includes(role));
+      if (!permitted) {
+        loginPanel.hidden = true;
+        deniedPanel.hidden = false;
+        board.hidden = true;
+        signOutButton.hidden = false;
+        staffName.textContent = profile.displayName;
+        return;
+      }
+      loginPanel.hidden = true;
+      deniedPanel.hidden = true;
+      board.hidden = false;
+      signOutButton.hidden = false;
+      refreshButton.hidden = false;
+      hrRoleOption.hidden = !profile.roles.includes("owner");
+      staffName.textContent = profile.displayName;
+      await loadDirectory();
+    } catch (error) {
+      if (generation !== loadGeneration) return;
+      showLogin(error instanceof Error ? error.message : "Could not sign in.");
+    }
+  }
+
+  if (!client) {
+    configNote.hidden = false;
+    loginForm.querySelectorAll<HTMLInputElement | HTMLButtonElement>("input, button").forEach((element) => {
+      element.disabled = true;
+    });
+    return;
+  }
+  const authClient = client;
+
+  loginForm.addEventListener("submit", async (event) => {
+    event.preventDefault();
+    const submit = document.querySelector<HTMLButtonElement>("#hr-login-submit")!;
+    submit.disabled = true;
+    loginMessage.textContent = "Signing in…";
+    const formData = new FormData(loginForm);
+    try {
+      const { data, error } = await authClient.auth.signInWithPassword({
+        email: String(formData.get("email") ?? "").trim(),
+        password: String(formData.get("password") ?? ""),
+      });
+      if (error) throw error;
+      await loadHrScreen(data.session);
+    } catch (error) {
+      loginMessage.textContent = error instanceof Error ? error.message : "Could not sign in.";
+    } finally {
+      submit.disabled = false;
+    }
+  });
+
+  assignForm.addEventListener("submit", async (event) => {
+    event.preventDefault();
+    const submit = document.querySelector<HTMLButtonElement>("#hr-assign-submit")!;
+    submit.disabled = true;
+    assignMessage.textContent = "Confirming employment and assigning role…";
+    const formData = new FormData(assignForm);
+    try {
+      const response = await fetchWithSession("/api/hr/staff/assign", {
+        method: "POST",
+        body: JSON.stringify({
+          email: String(formData.get("email") ?? "").trim(),
+          employeeNumber: String(formData.get("employeeNumber") ?? "").trim(),
+          role: String(formData.get("role") ?? ""),
+        }),
+      });
+      const result = (await response.json().catch(() => ({}))) as { message?: string; error?: string };
+      if (!response.ok) throw new Error(result.error ?? "Could not assign that role.");
+      assignForm.reset();
+      assignMessage.textContent = result.message ?? "Staff role assigned.";
+      await loadDirectory();
+    } catch (error) {
+      assignMessage.textContent = error instanceof Error ? error.message : "Could not assign that role.";
+    } finally {
+      submit.disabled = false;
+    }
+  });
+
+  async function signOut(): Promise<void> {
+    const { error } = await authClient.auth.signOut();
+    if (error) {
+      directoryMessage.textContent = "Could not sign out. Please try again.";
+      return;
+    }
+    showLogin();
+  }
+
+  refreshButton.addEventListener("click", () => void loadDirectory());
+  signOutButton.addEventListener("click", () => void signOut());
+  document.querySelector<HTMLButtonElement>("#hr-denied-sign-out")!.addEventListener("click", () => void signOut());
+  void authClient.auth.getSession().then(({ data, error }) => {
+    if (error) showLogin("Could not restore your session. Please sign in again.");
+    else if (data.session) void loadHrScreen(data.session);
+  });
+  authClient.auth.onAuthStateChange((_event, session) => {
+    if (!session) showLogin();
+    else currentSession = session;
+  });
+}
