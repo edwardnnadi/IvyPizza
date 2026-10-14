@@ -30,7 +30,7 @@ The Vite frontend runs at <http://127.0.0.1:5173> and proxies `/api` calls to th
 - `server/auth.ts` provides role checks, order ownership/assignment checks, and a kitchen order projection that excludes delivery contact details.
 - Database constraints and triggers enforce valid statuses, order totals, delivered-order reviews, and append-only order status events.
 
-Phase 2 establishes the identity, access, kitchen, and HR foundations. Customer ordering and payment processing are still future work.
+Phase 2 established the identity, access, kitchen, and HR foundations. Phase 3 now adds the customer menu and basket; checkout and payment processing remain future work.
 
 ### First owner setup
 
@@ -73,3 +73,21 @@ To create a production-style frontend bundle, run `npm run build`. The API remai
 - `dist/` — generated frontend bundle (ignored by Git)
 
 No payment provider, production policy, or customer-facing sample prices are configured at this stage.
+
+## Phase 3: customer menu foundation
+
+- The public menu is loaded from the database through `GET /api/menu`, grouped by category, with pizza sizes and extras.
+- Migration `004_customer_menu_catalog.sql` adds stable menu slugs and display order, then imports the current sample dishes. `005_sample_menu_pricing_and_options.sql` supplies clearly labeled development sample prices, size choices, and extras.
+- Customers can filter menu categories, choose quantities and options, and edit a basket saved in their browser.
+- `POST /api/menu/quote` validates item and option availability, requires a pizza size, and calculates each line and the subtotal from current database prices.
+- Sample prices are for development and are not customer-facing launch prices. Payment integration remains deferred until the provider is chosen.
+
+## Phase 4: accounts, addresses, and checkout
+
+- Customers can browse and build a basket without signing in. Placing an order requires a customer account.
+- Checkout accepts recipient name, phone, delivery address, landmark, and delivery instructions. Customers can select a saved address or save the address with the order.
+- `POST /api/orders` reprices the basket against current available menu data inside a database transaction, stores immutable item and delivery snapshots, and returns a unique order number.
+- A customer-scoped idempotency key and request fingerprint make retries safe and reject reusing a key with changed order details.
+- `CHECKOUT_DELIVERY_FEE_MINOR` defaults to a development sample of NGN 1,500. `CHECKOUT_TAX_BASIS_POINTS` defaults to 0 and applies to the item subtotal. Confirm real fee and tax policy before launch.
+- Orders begin in `awaiting_acceptance` with payment `pending`; this phase does not collect payment. The manager review queue is Phase 5.
+- Migration `006_customer_checkout.sql` adds saved-address recipient fields, idempotency storage, and the order-number sequence.

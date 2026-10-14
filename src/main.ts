@@ -1,5 +1,9 @@
 import { createClient, type Session, type SupabaseClient } from "@supabase/supabase-js";
 import "./style.css";
+import { initializePublicMenu } from "./menu.js";
+import { publicMarkup } from "./site-markup.js";
+import { initializeMotion } from "./motion.js";
+import "./site.css";
 
 interface AccountProfile {
   id: string;
@@ -16,79 +20,6 @@ const supabasePublishableKey = import.meta.env.VITE_SUPABASE_PUBLISHABLE_KEY;
 const supabase = supabaseUrl && supabasePublishableKey
   ? createClient(supabaseUrl, supabasePublishableKey)
   : null;
-
-const publicMarkup = `
-  <nav class="nav">
-    <a class="brand" href="#top">THE IVY <span>PIZZA</span></a>
-    <div class="navlinks"><a href="#menu">Menu</a><a href="#experience">Experience</a><a href="#visit">Visit us</a></div>
-    <button class="account-open" id="account-open" type="button">My account</button>
-  </nav>
-  <main id="top">
-    <section class="hero">
-      <div class="hero-copy">
-        <div class="eyebrow">Pizza • Burgers • Fast delivery</div>
-        <h1>Abuja's new<br />pizza ritual.</h1>
-        <p>Premium fast food with unmistakable Ivy character: signature pizzas, flame-grilled burgers and a faster way to collect your favourites.</p>
-        <div class="buttons"><a class="btn" href="#menu">Explore the menu</a><a class="btn alt" href="#visit">Find The Ivy Pizza</a></div>
-      </div>
-    </section>
-    <div class="strip"><b>Freshly prepared</b><b>Quick pickup</b><b>Delivery ready</b><b>Made for Abuja</b></div>
-    <section class="section" id="experience">
-      <div class="eyebrow dark">The Ivy experience</div><h2>Fast food, beautifully done.</h2>
-      <p class="lead">The Ivy Pizza brings together a quick-service pizza kitchen, flame-grilled classics and a warm space to dine, collect and go.</p>
-      <div class="gallery"><img src="/ivy-fast-food-interior-dining.png" alt="The Ivy Pizza dining room" /><img src="/ivy-fast-food-interior-pickup.png" alt="The Ivy Pizza pickup counter" /></div>
-    </section>
-    <section class="section menu" id="menu">
-      <div class="eyebrow">Our menu</div><h2>Made to order. Made your way.</h2>
-      <div class="tabs"><span class="tab">Pizzas</span><span class="tab">Burgers</span><span class="tab">Extras</span></div>
-      <div class="items">
-        <article class="item"><h3>Ivy Signature Chicken</h3><p>Ivy signature sauce, grilled chicken, mozzarella, sweetcorn, onions and Ivy herbs.</p></article>
-        <article class="item"><h3>Ivy Signature Beef</h3><p>Seasoned minced beef, Ivy signature sauce, mozzarella, onions, peppers and Ivy seasoning.</p></article>
-        <article class="item"><h3>Ivy Suya Pizza</h3><p>Spiced suya beef, onions, peppers, mozzarella and a suya pepper finish.</p></article>
-        <article class="item"><h3>Ivy Pepperoni Pizza</h3><p>Tomato sauce, generous pepperoni, mozzarella and Italian herbs.</p></article>
-        <article class="item"><h3>Ivy Margarita Pizza</h3><p>Tomato sauce, mozzarella, fresh tomatoes, basil and olive oil.</p></article>
-        <article class="item"><h3>Ivy Classic Burger</h3><p>Flame-grilled 4 oz beef patty, mayo, lettuce, tomato, pickles, ketchup and onions on a brioche bun.</p></article>
-        <article class="item"><h3>Ivy Double Classic</h3><p>Two flame-grilled 4 oz beef patties with classic toppings on toasted brioche.</p></article>
-        <article class="item"><h3>Chicken Burger &amp; Wrap</h3><p>Choose a brioche chicken burger or a chicken wrap with fresh salad and Ivy sauce.</p></article>
-      </div>
-      <p class="note">Add American cheese, beef bacon, jalapeños, guacamole, extra patty, extra chicken, pepperoni or mozzarella.</p>
-    </section>
-    <section class="section" id="visit"><div class="visit">
-      <img src="/ivy-fast-food-interior-counter.png" alt="Open kitchen" />
-      <div class="card"><div class="eyebrow dark">Order your way</div><h2>Eat in, pick up or get it delivered.</h2>
-        <p class="lead">Our open kitchen, dedicated collection point and delivery-ready setup are designed for your day. Location, opening hours and online ordering will be announced soon.</p>
-        <div class="buttons"><a class="btn" href="mailto:hello@theivypizza.com?subject=The%20Ivy%20Pizza%20enquiry">Contact us</a></div>
-      </div>
-    </div></section>
-  </main>
-  <footer class="footer"><b>THE IVY PIZZA</b><span>Pizza • Burgers • Abuja</span><span>Coming soon</span></footer>
-  <dialog class="account-dialog" id="account-dialog" aria-labelledby="account-title">
-    <div class="account-panel">
-      <button class="dialog-close" id="account-close" type="button" aria-label="Close account dialog">×</button>
-      <div class="eyebrow dark">The Ivy Pizza</div>
-      <h2 id="account-title">Your account</h2>
-      <p class="account-intro">Sign in to your Ivy account or create one to get started.</p>
-      <div class="account-tabs" id="account-tabs" role="tablist" aria-label="Account access">
-        <button type="button" class="account-tab active" data-mode="signin" role="tab" aria-selected="true">Sign in</button>
-        <button type="button" class="account-tab" data-mode="signup" role="tab" aria-selected="false">Create account</button>
-      </div>
-      <form id="auth-form">
-        <label id="name-field" class="form-field" hidden>Full name<input name="display_name" autocomplete="name" maxlength="100" /></label>
-        <label class="form-field">Email address<input name="email" type="email" autocomplete="email" required maxlength="254" /></label>
-        <label class="form-field">Password<input name="password" type="password" autocomplete="current-password" required minlength="8" maxlength="128" /></label>
-        <button class="btn account-submit" id="auth-submit" type="submit">Sign in</button>
-      </form>
-      <div id="profile-card" class="profile-card" hidden>
-        <p class="profile-name" id="profile-name"></p>
-        <p class="profile-email" id="profile-email"></p>
-        <p class="profile-roles" id="profile-roles"></p>
-        <button class="btn account-submit" id="sign-out" type="button">Sign out</button>
-      </div>
-      <p class="auth-message" id="auth-message" role="status" aria-live="polite"></p>
-      <p class="auth-config-note" id="auth-config-note" hidden>Account access is being configured. Please try again later.</p>
-    </div>
-  </dialog>
-`;
 
 const kitchenMarkup = `
   <div class="kitchen-app">
@@ -203,29 +134,37 @@ if (isKitchenScreen) {
   initializeHrScreen(supabase);
 } else {
 
+initializeMotion();
+initializePublicMenu(supabase, showAccount);
+
 const dialog = document.querySelector<HTMLDialogElement>("#account-dialog")!;
 const authForm = document.querySelector<HTMLFormElement>("#auth-form")!;
 const authMessage = document.querySelector<HTMLParagraphElement>("#auth-message")!;
 const accountTabs = document.querySelector<HTMLDivElement>("#account-tabs")!;
-const nameField = document.querySelector<HTMLLabelElement>("#name-field")!;
+const nameField = document.querySelector<HTMLDivElement>("#name-field")!;
+const accountIntro = document.querySelector<HTMLParagraphElement>("#account-intro")!;
+const accountTrigger = document.querySelector<HTMLButtonElement>("#account-open")!;
 const profileCard = document.querySelector<HTMLDivElement>("#profile-card")!;
 const configNote = document.querySelector<HTMLParagraphElement>("#auth-config-note")!;
 let authMode: "signin" | "signup" = "signin";
 let profileLoadGeneration = 0;
 
-function setMessage(message: string, kind: "info" | "error" = "info"): void {
+function setMessage(message: string, kind: "info" | "ok" | "error" = "info"): void {
   authMessage.textContent = message;
   authMessage.dataset.kind = kind;
 }
 
 function setAuthMode(mode: "signin" | "signup"): void {
   authMode = mode;
-  document.querySelectorAll<HTMLButtonElement>("[data-mode]").forEach((button) => {
+  document.querySelectorAll<HTMLButtonElement>("#account-tabs [data-mode]").forEach((button) => {
     const active = button.dataset.mode === mode;
-    button.classList.toggle("active", active);
     button.setAttribute("aria-selected", String(active));
   });
-  nameField.hidden = mode !== "signup";
+  accountTabs.dataset.mode = mode;
+  nameField.classList.toggle("is-open", mode === "signup");
+  accountIntro.textContent = mode === "signup"
+    ? "Create an Ivy account to save your details for faster ordering."
+    : "Sign in to your Ivy account or create one to get started.";
   nameField.querySelector("input")?.toggleAttribute("required", mode === "signup");
   authForm.querySelector<HTMLInputElement>('[name="password"]')?.setAttribute(
     "autocomplete",
@@ -236,14 +175,30 @@ function setAuthMode(mode: "signin" | "signup"): void {
 }
 
 function showAccount(): void {
-  if (!dialog.open) dialog.showModal();
+  if (dialog.open) return;
+  dialog.showModal();
+  if (!authForm.hidden) authForm.querySelector<HTMLInputElement>('[name="email"]')?.focus();
 }
+
+let signedInName: string | null = null;
+const narrowViewport = window.matchMedia("(max-width: 759px)");
+
+function setTriggerLabel(name: string | null): void {
+  signedInName = name;
+  accountTrigger.textContent = name ? name.split(/\s+/)[0]! : narrowViewport.matches ? "Account" : "My account";
+}
+narrowViewport.addEventListener("change", () => setTriggerLabel(signedInName));
+setTriggerLabel(null);
 
 function showSignedOut(): void {
   profileLoadGeneration += 1;
   accountTabs.hidden = false;
   authForm.hidden = false;
   profileCard.hidden = true;
+  setTriggerLabel(null);
+  accountIntro.textContent = authMode === "signup"
+    ? "Create an Ivy account to save your details for faster ordering."
+    : "Sign in to your Ivy account or create one to get started.";
 }
 
 async function loadProfile(session: Session): Promise<AccountProfile> {
@@ -263,14 +218,17 @@ async function showSignedIn(session: Session): Promise<void> {
   accountTabs.hidden = true;
   authForm.hidden = true;
   profileCard.hidden = false;
+  accountIntro.textContent = "You are signed in to your Ivy account.";
   setMessage("Loading your account…");
   try {
     const profile = await loadProfile(session);
     if (generation !== profileLoadGeneration) return;
     document.querySelector<HTMLParagraphElement>("#profile-name")!.textContent = profile.displayName;
     document.querySelector<HTMLParagraphElement>("#profile-email")!.textContent = profile.email ?? "";
-    document.querySelector<HTMLParagraphElement>("#profile-roles")!.textContent = profile.roles.join(" · ");
-    setMessage("You’re signed in.");
+    document.querySelector<HTMLParagraphElement>("#profile-roles")!.textContent = profile.roles.join(" · ") || "Customer";
+    document.querySelector<HTMLSpanElement>("#profile-initial")!.textContent = profile.displayName.charAt(0).toUpperCase();
+    setTriggerLabel(profile.displayName);
+    setMessage("You’re signed in.", "ok");
   } catch (error) {
     if (generation !== profileLoadGeneration) return;
     setMessage(error instanceof Error ? error.message : "We could not load your account.", "error");
@@ -282,7 +240,7 @@ document.querySelector<HTMLButtonElement>("#account-close")!.addEventListener("c
 dialog.addEventListener("click", (event) => {
   if (event.target === dialog) dialog.close();
 });
-document.querySelectorAll<HTMLButtonElement>("[data-mode]").forEach((button) => {
+document.querySelectorAll<HTMLButtonElement>("#account-tabs [data-mode]").forEach((button) => {
   button.addEventListener("click", () => setAuthMode(button.dataset.mode === "signup" ? "signup" : "signin"));
 });
 
@@ -312,7 +270,7 @@ if (!supabase) {
         });
         if (error) throw error;
         if (!data.session) {
-          setMessage("Account created. Check your email to confirm it, then sign in here.");
+          setMessage("Account created. Check your email to confirm it, then sign in here.", "ok");
         } else {
           await showSignedIn(data.session);
         }
@@ -336,7 +294,7 @@ if (!supabase) {
     }
     showSignedOut();
     setAuthMode("signin");
-    setMessage("You’re signed out.");
+    setMessage("You’re signed out.", "ok");
   });
 
   void supabase.auth.getSession().then(({ data, error }) => {

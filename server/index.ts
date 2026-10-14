@@ -3,6 +3,9 @@ import { database, runMigrations } from "./database.js";
 import { requireAuth } from "./auth.js";
 import kitchen from "./routes/kitchen.js";
 import hr from "./routes/hr.js";
+import menu from "./routes/menu.js";
+import customer from "./routes/customer.js";
+import orders from "./routes/orders.js";
 
 const app = express();
 const port = Number(process.env.PORT ?? process.env.API_PORT ?? 3001);
@@ -13,7 +16,7 @@ app.use(express.json({ limit: "32kb" }));
 app.get("/api/health", async (_request, response) => {
   try {
     await database.query("SELECT 1");
-    response.json({ status: "ok", database: "connected", phase: 2 });
+    response.json({ status: "ok", database: "connected", phase: 4 });
   } catch {
     response.status(503).json({ status: "error", database: "unavailable" });
   }
@@ -35,6 +38,9 @@ app.get("/api/me", requireAuth, (request, response) => {
 
 app.use("/api/kitchen", kitchen);
 app.use("/api/hr", hr);
+app.use("/api/menu", menu);
+app.use("/api/customer", customer);
+app.use("/api/orders", orders);
 
 app.use((_error: unknown, _request: express.Request, response: express.Response, _next: express.NextFunction) => {
   console.error("Request failed");

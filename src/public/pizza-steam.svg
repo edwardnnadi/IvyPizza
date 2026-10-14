@@ -1,0 +1,52 @@
+<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 320 260" role="img" aria-labelledby="title desc">
+  <title id="title">A slice of pizza with rising steam</title>
+  <desc id="desc">A minimalist golden pizza slice on a plate, with three gently looping wisps of steam.</desc>
+
+  <defs>
+    <clipPath id="slice">
+      <path d="M72 174 151 76q3-5 7 0l89 98q4 5-3 7-83 24-169 0-7-2-3-7Z"/>
+    </clipPath>
+  </defs>
+
+  <!-- Plate -->
+  <ellipse cx="160" cy="190" rx="112" ry="32" fill="#fffaf2" stroke="#e9dfd0" stroke-width="3"/>
+  <ellipse cx="160" cy="190" rx="91" ry="20" fill="none" stroke="#f0e7db" stroke-width="2"/>
+
+  <!-- Pizza slice -->
+  <path d="M72 174 151 76q3-5 7 0l89 98q4 5-3 7-83 24-169 0-7-2-3-7Z" fill="#c96f32"/>
+  <path d="M80 171 155 82l80 89q-78 21-155 0Z" fill="#f4c75e"/>
+  <path d="M80 171q77 21 155 0" fill="none" stroke="#b85e2b" stroke-width="7" stroke-linecap="round"/>
+
+  <!-- Simple toppings -->
+  <g fill="#c94d3d">
+    <circle cx="137" cy="125" r="7"/><circle cx="178" cy="142" r="7"/><circle cx="153" cy="163" r="7"/>
+  </g>
+  <g fill="#63854b">
+    <path d="M164 112q9-8 13-2-5 8-13 2Z"/><path d="M112 153q9-8 13-2-5 8-13 2Z"/><path d="M199 164q9-8 13-2-5 8-13 2Z"/>
+  </g>
+  <g fill="#fff0bd" opacity=".8">
+    <circle cx="126" cy="142" r="2"/><circle cx="186" cy="122" r="2"/><circle cx="172" cy="165" r="2"/>
+  </g>
+
+  <!-- Three light, staggered steam wisps -->
+  <g fill="none" stroke="#b7a995" stroke-width="4" stroke-linecap="round" opacity=".72">
+    <path d="M125 91c-11-10 10-15 0-27-5-6-4-11 0-16">
+      <animate attributeName="opacity" values="0;.7;.7;0" dur="3.6s" begin="0s" repeatCount="indefinite"/>
+      <animateTransform attributeName="transform" type="translate" values="0 9;0 -7;0 -20" keyTimes="0;.65;1" dur="3.6s" begin="0s" repeatCount="indefinite"/>
+    </path>
+    <path d="M159 76c-11-10 10-15 0-27-5-6-4-11 0-16">
+      <animate attributeName="opacity" values="0;.7;.7;0" dur="3.6s" begin="1.2s" repeatCount="indefinite"/>
+      <animateTransform attributeName="transform" type="translate" values="0 9;0 -7;0 -20" keyTimes="0;.65;1" dur="3.6s" begin="1.2s" repeatCount="indefinite"/>
+    </path>
+    <path d="M193 91c-11-10 10-15 0-27-5-6-4-11 0-16">
+      <animate attributeName="opacity" values="0;.7;.7;0" dur="3.6s" begin="2.4s" repeatCount="indefinite"/>
+      <animateTransform attributeName="transform" type="translate" values="0 9;0 -7;0 -20" keyTimes="0;.65;1" dur="3.6s" begin="2.4s" repeatCount="indefinite"/>
+    </path>
+  </g>
+
+  <style>
+    @media (prefers-reduced-motion: reduce) {
+      animate, animateTransform { display: none; }
+    }
+  </style>
+</svg>

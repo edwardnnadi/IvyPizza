@@ -1,0 +1,875 @@
+<!DOCTYPE html>
+<html>
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<script src="./support.js"></script>
+</head>
+<body>
+<x-dc>
+<helmet>
+<title>The Ivy Pizza · Abuja</title>
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link rel="preconnect" href="https://fonts.gstatic.com" crossorigin="">
+<link href="https://fonts.googleapis.com/css2?family=Roboto:wght@400;500;700&amp;family=Nunito+Sans:opsz,wght@6..12,400;6..12,500;6..12,600;6..12,700;6..12,800;6..12,900&amp;display=swap" rel="stylesheet">
+<script src="./image-slot.js"></script>
+<style>
+html{scroll-behavior:smooth}
+@media (prefers-reduced-motion: reduce){html{scroll-behavior:auto}}
+*{box-sizing:border-box}
+body{margin:0;background:#f7f3ea;color:#122019;font-family:'Nunito Sans',system-ui,sans-serif;-webkit-font-smoothing:antialiased;text-rendering:optimizeLegibility}
+a{color:inherit;text-decoration:none}
+a:hover{color:inherit}
+button{font:inherit}
+:focus-visible{outline:2px solid #d5a543;outline-offset:3px}
+@keyframes ivyPulse{0%,100%{opacity:.5}50%{opacity:1}}
+</style>
+</helmet>
+<div ref="{{rootRef}}" style="background:#f7f3ea;color:#122019;font-family:'Nunito Sans',system-ui,sans-serif;overflow-x:clip">
+
+<header ref="{{navRef}}" style="position:fixed;top:0;left:0;right:0;z-index:50;transition:background-color .4s ease,box-shadow .4s ease">
+  <div style="max-width:1320px;margin:0 auto;padding:14px clamp(18px,4vw,48px);display:flex;align-items:center;justify-content:space-between;gap:16px;color:#fff">
+    <a href="#top" aria-label="The Ivy Pizza, back to top" style="font-family:Roboto,'Helvetica Neue',Arial,sans-serif;font-size:clamp(20px,2.2vw,26px);letter-spacing:.16em;white-space:nowrap;color:#fff">THE IVY <span style="color:#d5a543">PIZZA</span></a>
+    <sc-if value="{{wide}}" hint-placeholder-val="{{true}}">
+      <nav aria-label="Primary" style="display:flex;gap:36px;font-size:14px;font-weight:600;letter-spacing:.02em">
+        <a href="#menu" style="color:#fff;padding:10px 0;transition:color .2s" style-hover="color:#d5a543">Menu</a>
+        <a href="#experience" style="color:#fff;padding:10px 0;transition:color .2s" style-hover="color:#d5a543">Experience</a>
+        <a href="#visit" style="color:#fff;padding:10px 0;transition:color .2s" style-hover="color:#d5a543">Visit us</a>
+      </nav>
+    </sc-if>
+    <div style="display:flex;align-items:center;gap:6px">
+      <sc-if value="{{narrow}}" hint-placeholder-val="{{false}}">
+        <a href="#menu" style="display:flex;align-items:center;min-height:44px;padding:0 12px;color:#fff;font-size:14px;font-weight:700">Menu</a>
+      </sc-if>
+      <button type="button" onClick="{{openAccount}}" style="display:flex;align-items:center;gap:8px;min-height:44px;padding:0 18px;border-radius:999px;border:1px solid #d5a543;background:#d5a543;color:#122019;font-weight:700;font-size:14px;cursor:pointer;transition:transform .2s cubic-bezier(.2,.7,.2,1),background .2s" style-hover="background:#e2b85c" style-active="transform:scale(.96)">{{accountLabel}}</button>
+    </div>
+  </div>
+</header>
+
+<main id="top">
+<section ref="{{heroRef}}" aria-label="Welcome" style="position:relative;height:{{heroH}};background:#071b12;color:#fff">
+ <div style="position:sticky;top:0;height:100svh;overflow:hidden;display:flex;align-items:flex-end">
+  <div ref="{{heroPar}}" style="position:absolute;left:0;right:0;top:-6%;height:112%;background:#2a1a10;will-change:transform">
+    <div ref="{{heroZoom}}" style="position:absolute;inset:0;transform-origin:50% 55%">
+      <img src="assets/hero/ivy-hero.png" alt="An Ivy Suya pizza on a wooden board beside an Ivy Pizza box, jollof rice, plantain, suya skewers and salsa" fetchpriority="high" decoding="async" style="position:absolute;inset:0;width:100%;height:100%;object-fit:cover;object-position:{{heroObjPos}}">
+    </div>
+  </div>
+  <div aria-hidden="true" style="position:absolute;inset:0;pointer-events:none;background:{{heroOverlay}}"></div>
+  <div ref="{{heroCopy}}" style="position:relative;width:100%;max-width:{{heroCopyMax}};margin:0;padding:max(96px,14vh) clamp(18px,4vw,48px) clamp(24px,7vh,104px);pointer-events:none">
+    <p data-intro="" style="margin:0 0 clamp(12px,2.4vh,22px);color:#d5a543;font-size:12px;font-weight:800;letter-spacing:.24em;text-transform:uppercase">Pizza • Burgers • Fast delivery</p>
+    <h1 style="margin:0;font-family:Roboto,'Helvetica Neue',Arial,sans-serif;font-weight:400;font-size:clamp(40px,min(7.2vw,10.5vh),108px);line-height:.92;letter-spacing:-.01em">
+      <span style="display:block;overflow:hidden;padding-bottom:.2em;margin-bottom:-.14em"><span data-line="" style="display:block">Abuja's new</span></span>
+      <span style="display:block;overflow:hidden;padding-bottom:.2em;margin-bottom:-.14em"><span data-line="" style="display:block">pizza <em style="color:#d5a543;font-style:normal">ritual.</em></span></span>
+    </h1>
+    <p data-intro="" style="max-width:{{heroPMax}};margin:clamp(16px,3vh,28px) 0 0;font-size:clamp(16px,1.4vw,19px);line-height:1.6;color:#dbe4dd;text-wrap:pretty">Premium fast food with unmistakable Ivy character: signature pizzas, flame-grilled burgers and a faster way to collect your favourites.</p>
+    <div data-intro="" style="display:flex;flex-wrap:wrap;gap:12px;margin-top:clamp(18px,4vh,36px);pointer-events:auto">
+      <a href="#menu" style="display:inline-flex;align-items:center;gap:12px;min-height:54px;padding:0 28px;border-radius:999px;background:#d5a543;color:#122019;font-weight:800;font-size:15px;transition:transform .3s cubic-bezier(.2,.7,.2,1),background .3s,box-shadow .3s" style-hover="background:#e2b85c;color:#122019;transform:translateY(-2px);box-shadow:0 12px 32px rgba(213,165,67,.35)">Explore the menu <span aria-hidden="true">→</span></a>
+      <a href="#visit" style="display:inline-flex;align-items:center;min-height:54px;padding:0 26px;border-radius:999px;border:1px solid rgba(255,255,255,.5);color:#fff;font-weight:700;font-size:15px;transition:border-color .3s,background .3s" style-hover="border-color:#fff;background:rgba(255,255,255,.08);color:#fff">Find The Ivy Pizza</a>
+    </div>
+    
+  </div>
+  <div ref="{{heroChip}}" data-intro="" style="position:absolute;right:clamp(18px,4vw,48px);top:{{chipTop}};bottom:{{chipBottom}};z-index:2;display:flex;align-items:center;gap:16px;padding:12px 12px 12px 20px;border-radius:999px;border:1px solid rgba(213,165,67,.55);background:rgba(7,27,18,.82);backdrop-filter:blur(10px);box-shadow:0 18px 44px rgba(0,0,0,.35);">
+    <div style="display:grid;gap:2px">
+      <span style="font-family:Roboto,'Helvetica Neue',Arial,sans-serif;font-size:22px;line-height:1;color:#f7f3ea;white-space:nowrap">Ivy Suya Pizza</span>
+      <span style="font-size:12px;font-weight:700;color:#e3bf70">From ₦9,500</span>
+    </div>
+    <button type="button" onClick="{{quickAdd}}" style="min-height:44px;padding:0 18px;border:0;border-radius:999px;background:#d5a543;color:#122019;font-weight:800;font-size:14px;cursor:pointer;white-space:nowrap;transition:background .2s,transform .2s" style-hover="background:#e2b85c" style-active="transform:scale(.96)">Add to basket</button>
+  </div>
+  
+ </div>
+</section>
+
+<div aria-label="Why The Ivy" style="background:#103c2a;color:#f7f3ea;overflow:hidden;border-bottom:1px solid rgba(213,165,67,.3)">
+  <div ref="{{marqueeRef}}" style="display:flex;width:{{stripWidth}};flex-wrap:{{stripWrap}};justify-content:center;padding:22px 0">
+    <ul style="display:flex;flex-wrap:{{stripWrap}};justify-content:center;list-style:none;margin:0;padding:0">
+      <li style="display:flex;align-items:center;gap:40px;padding:4px 20px 4px 20px;font-family:Roboto,'Helvetica Neue',Arial,sans-serif;font-size:clamp(22px,2.4vw,32px);white-space:nowrap">Freshly prepared<span aria-hidden="true" style="width:7px;height:7px;background:#d5a543;transform:rotate(45deg)"></span></li>
+      <li style="display:flex;align-items:center;gap:40px;padding:4px 20px;font-family:Roboto,'Helvetica Neue',Arial,sans-serif;font-size:clamp(22px,2.4vw,32px);white-space:nowrap">Quick pickup<span aria-hidden="true" style="width:7px;height:7px;background:#d5a543;transform:rotate(45deg)"></span></li>
+      <li style="display:flex;align-items:center;gap:40px;padding:4px 20px;font-family:Roboto,'Helvetica Neue',Arial,sans-serif;font-size:clamp(22px,2.4vw,32px);white-space:nowrap">Delivery ready<span aria-hidden="true" style="width:7px;height:7px;background:#d5a543;transform:rotate(45deg)"></span></li>
+      <li style="display:flex;align-items:center;gap:40px;padding:4px 20px;font-family:Roboto,'Helvetica Neue',Arial,sans-serif;font-size:clamp(22px,2.4vw,32px);white-space:nowrap">Made for Abuja<span aria-hidden="true" style="width:7px;height:7px;background:#d5a543;transform:rotate(45deg)"></span></li>
+    </ul>
+    <sc-if value="{{motionOn}}" hint-placeholder-val="{{true}}">
+      <ul aria-hidden="true" style="display:flex;list-style:none;margin:0;padding:0">
+        <li style="display:flex;align-items:center;gap:40px;padding:4px 20px;font-family:Roboto,'Helvetica Neue',Arial,sans-serif;font-size:clamp(22px,2.4vw,32px);white-space:nowrap">Freshly prepared<span style="width:7px;height:7px;background:#d5a543;transform:rotate(45deg)"></span></li>
+        <li style="display:flex;align-items:center;gap:40px;padding:4px 20px;font-family:Roboto,'Helvetica Neue',Arial,sans-serif;font-size:clamp(22px,2.4vw,32px);white-space:nowrap">Quick pickup<span style="width:7px;height:7px;background:#d5a543;transform:rotate(45deg)"></span></li>
+        <li style="display:flex;align-items:center;gap:40px;padding:4px 20px;font-family:Roboto,'Helvetica Neue',Arial,sans-serif;font-size:clamp(22px,2.4vw,32px);white-space:nowrap">Delivery ready<span style="width:7px;height:7px;background:#d5a543;transform:rotate(45deg)"></span></li>
+        <li style="display:flex;align-items:center;gap:40px;padding:4px 20px;font-family:Roboto,'Helvetica Neue',Arial,sans-serif;font-size:clamp(22px,2.4vw,32px);white-space:nowrap">Made for Abuja<span style="width:7px;height:7px;background:#d5a543;transform:rotate(45deg)"></span></li>
+      </ul>
+    </sc-if>
+  </div>
+</div>
+
+<section id="experience" aria-labelledby="exp-title">
+  <sc-if value="{{motionOn}}" hint-placeholder-val="{{true}}">
+    <div ref="{{expRef}}" style="position:relative;height:250vh;background:#f7f3ea">
+      <div style="position:sticky;top:0;height:100vh;max-width:1320px;margin:0 auto;display:grid;grid-template-columns:{{expCols}};grid-template-rows:{{expRows}};gap:clamp(20px,4vw,72px);align-items:center;padding:{{expPad}}">
+        <div style="position:relative;height:{{expPhotoH}};border-radius:8px;overflow:hidden;background:#102d20">
+          <div ref="{{expA}}" style="position:absolute;inset:0;will-change:transform">
+            <image-slot id="ivy-dining" shape="rect" placeholder="Dining room photo · ivy-fast-food-interior-dining" style="display:block;width:100%;height:100%"></image-slot>
+          </div>
+          <div ref="{{expB}}" style="position:absolute;inset:0;clip-path:inset(100% 0 0 0);will-change:clip-path">
+            <image-slot id="ivy-pickup" shape="rect" placeholder="Pickup counter photo · ivy-fast-food-interior-pickup" style="display:block;width:100%;height:100%"></image-slot>
+          </div>
+          <div style="position:absolute;left:16px;top:16px;display:flex;gap:6px;pointer-events:none">
+            <span ref="{{capA}}" style="padding:7px 12px;border-radius:999px;background:#d5a543;color:#122019;font-size:12px;font-weight:700;transition:background .3s,color .3s">Dining room</span>
+            <span ref="{{capB}}" style="padding:7px 12px;border-radius:999px;background:rgba(7,27,18,.75);color:#f7f3ea;font-size:12px;font-weight:700;transition:background .3s,color .3s">Pickup counter</span>
+          </div>
+        </div>
+        <div style="display:flex;flex-direction:column;gap:28px;min-width:0">
+          <div style="display:grid;min-height:{{expTextH}}">
+            <div ref="{{expT1}}" style="grid-area:1/1;align-self:center">
+              <p style="margin:0 0 16px;color:#7d5c1c;font-size:12px;font-weight:800;letter-spacing:.24em;text-transform:uppercase">The Ivy experience</p>
+              <h2 id="exp-title" style="margin:0;font-family:Roboto,'Helvetica Neue',Arial,sans-serif;font-weight:400;font-size:clamp(40px,5.4vw,76px);line-height:.98;color:#103c2a;text-wrap:balance">Fast food, beautifully done.</h2>
+              <p style="margin:20px 0 0;max-width:460px;font-size:clamp(15px,1.3vw,17px);line-height:1.65;color:#526057;text-wrap:pretty">The Ivy Pizza brings together a quick-service pizza kitchen, flame-grilled classics and a warm space to dine, collect and go.</p>
+            </div>
+            <div ref="{{expT2}}" style="grid-area:1/1;align-self:center;opacity:0;visibility:hidden">
+              <p style="margin:0 0 16px;color:#7d5c1c;font-size:12px;font-weight:800;letter-spacing:.24em;text-transform:uppercase">Collect and go</p>
+              <h2 style="margin:0;font-family:Roboto,'Helvetica Neue',Arial,sans-serif;font-weight:400;font-size:clamp(40px,5.4vw,76px);line-height:.98;color:#103c2a;text-wrap:balance">Ready when you are.</h2>
+              <p style="margin:20px 0 0;max-width:460px;font-size:clamp(15px,1.3vw,17px);line-height:1.65;color:#526057;text-wrap:pretty">A dedicated pickup counter keeps collections quick, so your order is waiting the moment you walk in.</p>
+            </div>
+          </div>
+          <div aria-hidden="true" style="display:flex;align-items:center;gap:14px;font-size:12px;font-weight:700;color:#526057;font-variant-numeric:tabular-nums">
+            <span>01</span>
+            <span style="position:relative;flex:1;max-width:220px;height:2px;background:#e1ddd2;overflow:hidden"><span ref="{{expBar}}" style="position:absolute;inset:0;background:#d5a543;transform-origin:0 50%;transform:scaleX(0)"></span></span>
+            <span>02</span>
+          </div>
+        </div>
+      </div>
+    </div>
+  </sc-if>
+  <sc-if value="{{rm}}" hint-placeholder-val="{{false}}">
+    <div style="max-width:1320px;margin:0 auto;padding:clamp(72px,10vw,128px) clamp(18px,4vw,48px)">
+      <p style="margin:0 0 16px;color:#7d5c1c;font-size:12px;font-weight:800;letter-spacing:.24em;text-transform:uppercase">The Ivy experience</p>
+      <h2 id="exp-title" style="margin:0;font-family:Roboto,'Helvetica Neue',Arial,sans-serif;font-weight:400;font-size:clamp(40px,5.4vw,76px);line-height:.98;color:#103c2a">Fast food, beautifully done.</h2>
+      <p style="margin:20px 0 0;max-width:560px;font-size:17px;line-height:1.65;color:#526057">The Ivy Pizza brings together a quick-service pizza kitchen, flame-grilled classics and a warm space to dine, collect and go.</p>
+      <div style="display:grid;grid-template-columns:repeat(auto-fit,minmax(min(100%,320px),1fr));gap:18px;margin-top:40px">
+        <div style="height:clamp(280px,40vw,520px);border-radius:8px;overflow:hidden"><image-slot id="ivy-dining" shape="rect" placeholder="Dining room photo" style="display:block;width:100%;height:100%"></image-slot></div>
+        <div style="height:clamp(280px,40vw,520px);border-radius:8px;overflow:hidden"><image-slot id="ivy-pickup" shape="rect" placeholder="Pickup counter photo" style="display:block;width:100%;height:100%"></image-slot></div>
+      </div>
+    </div>
+  </sc-if>
+</section>
+
+<section id="menu" aria-labelledby="menu-title" style="background:#102d20;color:#fff;padding:clamp(72px,10vw,128px) 0">
+  <div style="max-width:1320px;margin:0 auto;padding:0 clamp(18px,4vw,48px)">
+    <div style="display:flex;flex-wrap:wrap;align-items:flex-end;justify-content:space-between;gap:28px 48px;margin-bottom:40px">
+      <div data-reveal="">
+        <p style="margin:0 0 16px;color:#d5a543;font-size:12px;font-weight:800;letter-spacing:.24em;text-transform:uppercase">Our menu</p>
+        <h2 id="menu-title" style="margin:0;font-family:Roboto,'Helvetica Neue',Arial,sans-serif;font-weight:400;font-size:clamp(42px,6vw,84px);line-height:.95">Made to order.<br>Made your way.</h2>
+      </div>
+      <div role="group" aria-label="Filter menu by category" style="position:relative;display:flex;padding:4px;border-radius:999px;border:1px solid rgba(255,255,255,.18);background:rgba(7,27,18,.5)">
+        <span aria-hidden="true" style="position:absolute;top:4px;bottom:4px;left:0;width:{{indW}};transform:translateX({{indX}});background:#d5a543;border-radius:999px;transition:{{indTransition}}"></span>
+        <sc-for list="{{filters}}" as="f" hint-placeholder-count="3">
+          <button type="button" ref="{{f.ref}}" aria-pressed="{{f.pressed}}" onClick="{{f.onClick}}" style="position:relative;display:flex;align-items:center;gap:8px;min-height:44px;padding:0 20px;border:0;background:transparent;border-radius:999px;color:{{f.color}};font-weight:700;font-size:14px;cursor:pointer;transition:color .3s">{{f.label}}<span style="font-size:11px;font-weight:800;opacity:.7">{{f.count}}</span></button>
+        </sc-for>
+      </div>
+    </div>
+
+    <div style="display:flex;flex-wrap:wrap;align-items:flex-start;gap:28px">
+      <div style="flex:999 1 560px;min-width:0">
+        <div ref="{{cardsRef}}" aria-live="polite" aria-busy="{{loading}}" style="display:grid;grid-template-columns:repeat(auto-fill,minmax(min(100%,290px),1fr));gap:16px">
+          <sc-if value="{{loading}}" hint-placeholder-val="{{false}}">
+            <sc-for list="{{skeletons}}" as="k" hint-placeholder-count="0">
+              <div aria-hidden="true" style="display:flex;flex-direction:column;gap:12px;min-height:340px;padding:24px;border-radius:8px;background:#173728;border:1px solid rgba(213,165,67,.14);animation:{{pulse}};animation-delay:{{k.delay}}">
+                <span style="width:30%;height:10px;border-radius:999px;background:rgba(255,255,255,.1)"></span>
+                <span style="width:75%;height:28px;border-radius:6px;background:rgba(255,255,255,.12);margin-top:6px"></span>
+                <span style="width:100%;height:12px;border-radius:999px;background:rgba(255,255,255,.08)"></span>
+                <span style="width:85%;height:12px;border-radius:999px;background:rgba(255,255,255,.08)"></span>
+                <span style="flex:1"></span>
+                <span style="width:100%;height:48px;border-radius:999px;background:rgba(213,165,67,.18)"></span>
+              </div>
+            </sc-for>
+          </sc-if>
+          <sc-if value="{{menuError}}" hint-placeholder-val="{{false}}">
+            <div role="alert" style="grid-column:1/-1;display:flex;flex-wrap:wrap;align-items:center;justify-content:space-between;gap:16px;padding:28px;border-radius:8px;background:#2a1f12;border:1px solid rgba(240,201,122,.4)">
+              <div>
+                <p style="margin:0;font-family:Roboto,'Helvetica Neue',Arial,sans-serif;font-size:28px;color:#f7f3ea">We couldn't load the menu.</p>
+                <p style="margin:6px 0 0;font-size:14px;color:#e9dcc2;line-height:1.5">Check your connection and try again.</p>
+              </div>
+              <button type="button" onClick="{{retry}}" style="min-height:48px;padding:0 24px;border-radius:999px;border:0;background:#d5a543;color:#122019;font-weight:800;cursor:pointer" style-active="transform:scale(.97)">Try again</button>
+            </div>
+          </sc-if>
+          <sc-if value="{{menuEmpty}}" hint-placeholder-val="{{false}}">
+            <div style="grid-column:1/-1;padding:40px 28px;border-radius:8px;border:1px dashed rgba(213,165,67,.4);text-align:center">
+              <p style="margin:0;font-family:Roboto,'Helvetica Neue',Arial,sans-serif;font-size:30px;color:#f7f3ea">{{emptyTitle}}</p>
+              <p style="margin:8px 0 20px;font-size:14px;color:#c3d1c7">Check back soon, or browse the full menu.</p>
+              <button type="button" onClick="{{showAll}}" style="min-height:44px;padding:0 22px;border-radius:999px;border:1px solid #d5a543;background:transparent;color:#d5a543;font-weight:700;cursor:pointer" style-hover="background:rgba(213,165,67,.12)">Show everything</button>
+            </div>
+          </sc-if>
+          <sc-for list="{{cards}}" as="c" hint-placeholder-count="6">
+            <article data-card-id="{{c.id}}" aria-label="{{c.name}}" style="display:flex;flex-direction:column;padding:24px;border-radius:8px;background:#173728;border:1px solid {{c.border}};box-shadow:{{c.shadow}};opacity:{{c.opacity}};transition:border-color .35s,box-shadow .35s">
+              <div style="display:flex;justify-content:space-between;align-items:center;gap:12px;margin-bottom:14px;min-height:24px">
+                <span style="font-size:11px;font-weight:800;letter-spacing:.2em;text-transform:uppercase;color:#9fb5a7">{{c.catLabel}}</span>
+                <sc-if value="{{c.soldOut}}"><span style="padding:5px 10px;border-radius:999px;background:#f0c97a;color:#2a1f12;font-size:11px;font-weight:800">Sold out today</span></sc-if>
+              </div>
+              <h3 style="margin:0;font-family:Roboto,'Helvetica Neue',Arial,sans-serif;font-weight:400;font-size:30px;line-height:1.05;color:#f7f3ea">{{c.name}}</h3>
+              <p style="margin:10px 0 0;font-size:14px;line-height:1.55;color:#c3d1c7;flex:1;text-wrap:pretty">{{c.desc}}</p>
+              <p style="margin:16px 0 0;font-size:14px;font-weight:700;color:#e3bf70">From {{c.from}}</p>
+              <sc-if value="{{c.hasSizes}}">
+                <div role="radiogroup" aria-label="Size for {{c.name}}" style="display:grid;grid-template-columns:repeat(3,minmax(0,1fr));gap:6px;margin-top:14px">
+                  <sc-for list="{{c.sizes}}" as="s">
+                    <button type="button" role="radio" aria-checked="{{s.ariaChecked}}" disabled="{{c.soldOut}}" onClick="{{s.onClick}}" style="display:flex;flex-direction:column;align-items:center;justify-content:center;gap:2px;min-height:54px;padding:6px 4px;border-radius:8px;border:1px solid {{s.border}};background:{{s.bg}};color:{{s.color}};cursor:pointer;transition:background .25s,border-color .25s,color .25s,transform .15s" style-active="transform:scale(.95)">
+                      <span style="font-size:13px;font-weight:800">{{s.label}} {{s.inch}}</span>
+                      <span style="font-size:11px;font-weight:600;opacity:.8">{{s.extra}}</span>
+                    </button>
+                  </sc-for>
+                </div>
+              </sc-if>
+              <div style="margin-top:14px;border-top:1px solid rgba(213,165,67,.2)">
+                <button type="button" aria-expanded="{{c.open}}" aria-controls="{{c.extrasId}}" disabled="{{c.soldOut}}" onClick="{{c.toggle}}" style="width:100%;display:flex;justify-content:space-between;align-items:center;min-height:44px;padding:0;border:0;background:none;color:#e3bf70;font-size:13px;font-weight:700;cursor:pointer">
+                  <span>{{c.extrasLabel}}</span>
+                  <span aria-hidden="true" style="display:grid;place-items:center;width:26px;height:26px;border-radius:999px;border:1px solid rgba(213,165,67,.5);font-size:17px;line-height:1;transform:rotate({{c.plusRot}});transition:transform .4s cubic-bezier(.65,0,.35,1)">+</span>
+                </button>
+                <div id="{{c.extrasId}}" style="display:grid;grid-template-rows:{{c.rows}};visibility:{{c.vis}};transition:grid-template-rows .4s cubic-bezier(.65,0,.35,1),visibility .4s">
+                  <div style="overflow:hidden;min-height:0">
+                    <div style="display:grid;grid-template-columns:repeat(2,minmax(0,1fr));gap:2px 12px;padding:2px 0 8px">
+                      <sc-for list="{{c.extras}}" as="x">
+                        <label style="display:flex;align-items:center;gap:8px;min-height:40px;font-size:13px;line-height:1.3;color:#dbe4dd;cursor:pointer">
+                          <input type="checkbox" checked="{{x.checked}}" onChange="{{x.onChange}}" style="flex:none;width:18px;height:18px;margin:0;accent-color:#d5a543">
+                          <span>{{x.label}} <span style="color:#9fb5a7;white-space:nowrap">{{x.price}}</span></span>
+                        </label>
+                      </sc-for>
+                    </div>
+                  </div>
+                </div>
+              </div>
+              <div style="display:flex;align-items:center;gap:10px;margin-top:14px">
+                <div role="group" aria-label="Quantity for {{c.name}}" style="display:flex;align-items:center;height:48px;border:1px solid rgba(255,255,255,.2);border-radius:999px">
+                  <button type="button" aria-label="Decrease quantity" disabled="{{c.soldOut}}" onClick="{{c.dec}}" style="width:44px;height:46px;border:0;border-radius:999px;background:none;color:#fff;font-size:18px;cursor:pointer" style-hover="background:rgba(255,255,255,.08)">−</button>
+                  <span style="min-width:20px;text-align:center;font-weight:800;font-variant-numeric:tabular-nums">{{c.qty}}</span>
+                  <button type="button" aria-label="Increase quantity" disabled="{{c.soldOut}}" onClick="{{c.inc}}" style="width:44px;height:46px;border:0;border-radius:999px;background:none;color:#fff;font-size:18px;cursor:pointer" style-hover="background:rgba(255,255,255,.08)">+</button>
+                </div>
+                <button type="button" disabled="{{c.soldOut}}" onClick="{{c.add}}" style="flex:1;min-height:48px;padding:0 16px;border:0;border-radius:999px;background:{{c.btnBg}};color:{{c.btnColor}};font-weight:800;font-size:14px;cursor:{{c.btnCursor}};white-space:nowrap;font-variant-numeric:tabular-nums;transition:background .3s,transform .2s cubic-bezier(.2,.7,.2,1)" style-active="transform:scale(.96)">{{c.btnLabel}}</button>
+              </div>
+            </article>
+          </sc-for>
+        </div>
+        <p style="margin:24px 0 0;font-size:13px;line-height:1.5;color:#9fb5a7">Prices shown are development samples. Final prices and availability will be confirmed before launch.</p>
+      </div>
+
+      <div aria-hidden="true" onClick="{{closeSheet}}" style="position:fixed;inset:0;z-index:65;background:rgba(3,13,8,.62);opacity:{{sheetScrimOpacity}};pointer-events:{{sheetScrimPE}};transition:opacity .4s"></div>
+      <aside ref="{{basketRef}}" id="basket" aria-labelledby="basket-title" style="{{basketStyle}}">
+        <sc-if value="{{narrow}}" hint-placeholder-val="{{false}}">
+          <span aria-hidden="true" style="display:block;width:44px;height:4px;margin:10px auto 0;border-radius:999px;background:#cfd4cc"></span>
+        </sc-if>
+        <div style="display:flex;align-items:flex-start;justify-content:space-between;gap:12px;padding:20px 24px 14px">
+          <div>
+            <p style="margin:0 0 4px;color:#7d5c1c;font-size:11px;font-weight:800;letter-spacing:.24em;text-transform:uppercase">Your selection</p>
+            <h3 id="basket-title" style="margin:0;font-family:Roboto,'Helvetica Neue',Arial,sans-serif;font-weight:400;font-size:34px;line-height:1;color:#103c2a">Basket</h3>
+          </div>
+          <div style="display:flex;align-items:center;gap:6px">
+            <span ref="{{countRef}}" style="display:inline-flex;align-items:center;height:28px;padding:0 12px;border-radius:999px;background:#103c2a;color:#f7f3ea;font-size:12px;font-weight:800;font-variant-numeric:tabular-nums">{{countLabel}}</span>
+            <sc-if value="{{narrow}}" hint-placeholder-val="{{false}}">
+              <button type="button" aria-label="Close basket" onClick="{{closeSheet}}" style="width:44px;height:44px;border:0;border-radius:999px;background:transparent;color:#526057;font-size:26px;line-height:1;cursor:pointer" style-hover="background:#ece8dd">×</button>
+            </sc-if>
+          </div>
+        </div>
+        <div style="flex:1;min-height:0;overflow:auto;padding:0 24px">
+          <sc-if value="{{basketEmpty}}" hint-placeholder-val="{{false}}">
+            <div style="padding:28px 0;border-top:1px solid #e3e0d6">
+              <p style="margin:0;font-family:Roboto,'Helvetica Neue',Arial,sans-serif;font-size:26px;color:#103c2a">Your basket is empty.</p>
+              <p style="margin:6px 0 0;font-size:14px;line-height:1.5;color:#526057">Pick a pizza or burger to get started.</p>
+            </div>
+          </sc-if>
+          <ul style="list-style:none;margin:0;padding:0">
+            <sc-for list="{{lines}}" as="l" hint-placeholder-count="2">
+              <li data-line-id="{{l.key}}" style="display:grid;grid-template-columns:minmax(0,1fr) auto;align-items:center;gap:10px 12px;padding:16px 0;border-top:1px solid #e3e0d6">
+                <div style="min-width:0">
+                  <p style="margin:0;font-size:15px;font-weight:700;color:#122019">{{l.name}}</p>
+                  <p style="margin:4px 0 0;font-size:12px;line-height:1.4;color:#5d6a61">{{l.opts}}</p>
+                </div>
+                <p style="margin:0;font-size:14px;font-weight:800;color:#122019;font-variant-numeric:tabular-nums;text-align:right">{{l.total}}</p>
+                <div role="group" aria-label="Quantity for {{l.name}}" style="display:flex;align-items:center;justify-self:start;height:40px;border:1px solid #cfd4cc;border-radius:999px;background:#fff">
+                  <button type="button" aria-label="Decrease quantity" disabled="{{l.atMin}}" onClick="{{l.dec}}" style="width:40px;height:38px;border:0;border-radius:999px;background:none;color:#122019;font-size:16px;cursor:pointer;opacity:{{l.decOpacity}}">−</button>
+                  <span style="min-width:18px;text-align:center;font-size:14px;font-weight:800;font-variant-numeric:tabular-nums">{{l.qty}}</span>
+                  <button type="button" aria-label="Increase quantity" onClick="{{l.inc}}" style="width:40px;height:38px;border:0;border-radius:999px;background:none;color:#122019;font-size:16px;cursor:pointer">+</button>
+                </div>
+                <button type="button" onClick="{{l.remove}}" aria-label="Remove {{l.name}}" style="justify-self:end;min-height:40px;padding:0 4px;border:0;background:none;color:#8a3e31;font-size:13px;font-weight:700;text-decoration:underline;text-underline-offset:3px;cursor:pointer">Remove</button>
+              </li>
+            </sc-for>
+          </ul>
+        </div>
+        <div style="padding:16px 24px 24px;border-top:1px solid #e3e0d6">
+          <div style="display:flex;justify-content:space-between;align-items:center;gap:12px">
+            <span style="display:flex;align-items:center;gap:10px;font-size:14px;font-weight:700;color:#526057">Subtotal
+              <sc-if value="{{calculating}}" hint-placeholder-val="{{false}}"><span style="padding:3px 9px;border-radius:999px;background:#e9e4d6;color:#526057;font-size:11px;font-weight:700;animation:{{pulse}}">Updating…</span></sc-if>
+            </span>
+            <strong ref="{{subRef}}" style="font-size:26px;font-weight:800;color:{{subColor}};font-variant-numeric:tabular-nums;transition:color .3s">{{subtotal}}</strong>
+          </div>
+          <p role="status" aria-live="polite" style="min-height:20px;margin:8px 0 14px;font-size:13px;line-height:1.45;color:#31533e">{{status}}</p>
+          <button type="button" disabled="" style="width:100%;min-height:52px;border-radius:999px;border:1px dashed #9aa59d;background:transparent;color:#526057;font-weight:700;font-size:14px;cursor:not-allowed">Checkout · coming soon</button>
+        </div>
+      </aside>
+    </div>
+  </div>
+</section>
+
+<section id="visit" aria-labelledby="visit-title" style="background:#f7f3ea;padding:clamp(72px,10vw,128px) 0">
+  <div style="max-width:1320px;margin:0 auto;padding:0 clamp(18px,4vw,48px);display:grid;grid-template-columns:repeat(auto-fit,minmax(min(100%,420px),1fr));gap:clamp(32px,6vw,96px);align-items:center">
+    <div data-reveal="" style="position:relative;aspect-ratio:4/5;max-height:720px;border-radius:8px;overflow:hidden;background:#102d20">
+      <div ref="{{visitPar}}" style="position:absolute;left:0;right:0;top:-10%;height:120%;will-change:transform">
+        <image-slot id="ivy-open-kitchen" shape="rect" placeholder="Open kitchen photo · ivy-fast-food-interior-counter" style="display:block;width:100%;height:100%"></image-slot>
+      </div>
+    </div>
+    <div data-reveal="">
+      <p style="margin:0 0 16px;color:#7d5c1c;font-size:12px;font-weight:800;letter-spacing:.24em;text-transform:uppercase">Order your way</p>
+      <h2 id="visit-title" style="margin:0;font-family:Roboto,'Helvetica Neue',Arial,sans-serif;font-weight:400;font-size:clamp(40px,5vw,68px);line-height:1;color:#103c2a;text-wrap:balance">Eat in, pick up or get it delivered.</h2>
+      <p style="margin:20px 0 0;max-width:520px;font-size:17px;line-height:1.65;color:#526057;text-wrap:pretty">Our open kitchen, dedicated collection point and delivery-ready setup are designed for your day. Location, opening hours and online ordering will be announced soon.</p>
+      <ol style="list-style:none;margin:36px 0 0;padding:0;display:grid;grid-template-columns:repeat(3,minmax(0,1fr));border-top:1px solid #d9d5c9">
+        <li style="padding:18px 12px 0 0"><span style="display:block;font-size:12px;font-weight:800;color:#7d5c1c">01</span><span style="display:block;margin-top:6px;font-family:Roboto,'Helvetica Neue',Arial,sans-serif;font-size:clamp(24px,2.4vw,30px);color:#103c2a">Eat in</span></li>
+        <li style="padding:18px 12px 0 16px;border-left:1px solid #d9d5c9"><span style="display:block;font-size:12px;font-weight:800;color:#7d5c1c">02</span><span style="display:block;margin-top:6px;font-family:Roboto,'Helvetica Neue',Arial,sans-serif;font-size:clamp(24px,2.4vw,30px);color:#103c2a">Pick up</span></li>
+        <li style="padding:18px 0 0 16px;border-left:1px solid #d9d5c9"><span style="display:block;font-size:12px;font-weight:800;color:#7d5c1c">03</span><span style="display:block;margin-top:6px;font-family:Roboto,'Helvetica Neue',Arial,sans-serif;font-size:clamp(24px,2.4vw,30px);color:#103c2a">Delivery</span></li>
+      </ol>
+      <div style="display:flex;flex-wrap:wrap;gap:12px;margin-top:40px">
+        <a href="mailto:hello@theivypizza.com?subject=The%20Ivy%20Pizza%20enquiry" style="display:inline-flex;align-items:center;gap:12px;min-height:54px;padding:0 28px;border-radius:999px;background:#103c2a;color:#f7f3ea;font-weight:800;font-size:15px;transition:transform .3s cubic-bezier(.2,.7,.2,1),background .3s" style-hover="background:#071b12;color:#f7f3ea;transform:translateY(-2px)">Contact us <span aria-hidden="true">→</span></a>
+        <a href="#menu" style="display:inline-flex;align-items:center;min-height:54px;padding:0 26px;border-radius:999px;border:1px solid #103c2a;color:#103c2a;font-weight:700;font-size:15px;transition:background .3s" style-hover="background:#ece8dd;color:#103c2a">Browse the menu</a>
+      </div>
+    </div>
+  </div>
+</section>
+</main>
+
+<footer style="background:#071b12;color:#c3d1c7;padding:56px clamp(18px,4vw,48px) 120px">
+  <div style="max-width:1320px;margin:0 auto;display:flex;flex-wrap:wrap;align-items:center;justify-content:space-between;gap:20px 40px">
+    <span style="font-family:Roboto,'Helvetica Neue',Arial,sans-serif;font-size:28px;letter-spacing:.16em;color:#fff">THE IVY <span style="color:#d5a543">PIZZA</span></span>
+    <div style="display:flex;flex-wrap:wrap;gap:12px 32px;font-size:14px">
+      <span>Pizza • Burgers • Abuja</span>
+      <span style="color:#d5a543;font-weight:700">Coming soon</span>
+    </div>
+  </div>
+</footer>
+
+<button ref="{{pillRef}}" type="button" onClick="{{pillClick}}" aria-hidden="{{pillHidden}}" tabIndex="{{pillTab}}" style="position:fixed;left:50%;bottom:20px;z-index:60;display:flex;align-items:center;gap:14px;min-height:58px;padding:6px 6px 6px 22px;border-radius:999px;border:1px solid rgba(213,165,67,.55);background:#071b12;color:#fff;box-shadow:0 18px 44px rgba(0,0,0,.35);cursor:pointer;white-space:nowrap;transform:translate(-50%,{{pillY}});opacity:{{pillOpacity}};visibility:{{pillVis}};transition:{{pillTransition}}">
+  <span ref="{{pillBump}}" style="display:inline-block;font-size:14px;font-weight:700;font-variant-numeric:tabular-nums">{{pillText}}</span>
+  <span style="display:flex;align-items:center;height:46px;padding:0 18px;border-radius:999px;background:#d5a543;color:#122019;font-size:14px;font-weight:800">{{pillCta}}</span>
+</button>
+
+<div onClick="{{acctBackdrop}}" style="position:fixed;inset:0;z-index:90;display:grid;place-items:center;padding:16px;background:rgba(3,13,8,.72);backdrop-filter:blur(4px);opacity:{{acctOpacity}};visibility:{{acctVis}};transition:opacity .3s,visibility .3s">
+  <div role="dialog" aria-modal="true" aria-labelledby="account-title" style="position:relative;width:min(460px,100%);max-height:calc(100vh - 32px);overflow:auto;padding:clamp(24px,5vw,40px);border-radius:8px;border-top:5px solid #d5a543;background:#f7f3ea;color:#122019;box-shadow:0 30px 90px rgba(0,0,0,.45);transform:{{acctPanelT}};transition:{{acctPanelTransition}}">
+    <button type="button" aria-label="Close account dialog" onClick="{{closeAccount}}" style="position:absolute;right:10px;top:10px;width:44px;height:44px;border:0;border-radius:999px;background:transparent;color:#526057;font-size:28px;line-height:1;cursor:pointer" style-hover="background:#ece8dd">×</button>
+    <p style="margin:0;color:#7d5c1c;font-size:11px;font-weight:800;letter-spacing:.24em;text-transform:uppercase">The Ivy Pizza</p>
+    <h2 id="account-title" style="margin:10px 0 8px;font-family:Roboto,'Helvetica Neue',Arial,sans-serif;font-weight:400;font-size:40px;line-height:1;color:#103c2a">Your account</h2>
+    <p style="margin:0 0 22px;font-size:15px;line-height:1.5;color:#526057">{{acctIntro}}</p>
+    <sc-if value="{{showForm}}" hint-placeholder-val="{{true}}">
+      <div role="tablist" aria-label="Account access" style="position:relative;display:grid;grid-template-columns:1fr 1fr;border-bottom:1px solid #d6d9d2;margin-bottom:8px">
+        <button type="button" role="tab" aria-selected="{{tabSignin}}" onClick="{{toSignin}}" style="min-height:48px;border:0;background:none;color:{{tabSigninColor}};font-weight:800;font-size:14px;cursor:pointer;transition:color .25s">Sign in</button>
+        <button type="button" role="tab" aria-selected="{{tabSignup}}" onClick="{{toSignup}}" style="min-height:48px;border:0;background:none;color:{{tabSignupColor}};font-weight:800;font-size:14px;cursor:pointer;transition:color .25s">Create account</button>
+        <span aria-hidden="true" style="position:absolute;left:0;bottom:-1px;width:50%;height:3px;background:#d5a543;transform:translateX({{tabX}});transition:transform .4s cubic-bezier(.65,0,.35,1)"></span>
+      </div>
+      <form onSubmit="{{submit}}" noValidate="">
+        <div style="display:grid;grid-template-rows:{{nameRows}};visibility:{{nameVis}};transition:grid-template-rows .4s cubic-bezier(.65,0,.35,1),visibility .4s">
+          <div style="overflow:hidden;min-height:0">
+            <label style="display:grid;gap:7px;margin-top:16px;font-size:13px;font-weight:700;color:#314238">Full name
+              <input name="display_name" autocomplete="name" maxLength="100" value="{{fName}}" onChange="{{onName}}" style="width:100%;min-height:50px;padding:0 14px;border:1px solid #c7cec8;border-radius:6px;background:#fff;color:#122019;font:inherit;font-size:16px;font-weight:500;transition:border-color .2s,box-shadow .2s" style-focus="outline:none;border-color:#103c2a;box-shadow:0 0 0 3px rgba(213,165,67,.5)">
+            </label>
+          </div>
+        </div>
+        <label style="display:grid;gap:7px;margin-top:16px;font-size:13px;font-weight:700;color:#314238">Email address
+          <input ref="{{emailRef}}" name="email" type="email" autocomplete="email" maxLength="254" value="{{fEmail}}" onChange="{{onEmail}}" style="width:100%;min-height:50px;padding:0 14px;border:1px solid #c7cec8;border-radius:6px;background:#fff;color:#122019;font:inherit;font-size:16px;font-weight:500;transition:border-color .2s,box-shadow .2s" style-focus="outline:none;border-color:#103c2a;box-shadow:0 0 0 3px rgba(213,165,67,.5)">
+        </label>
+        <label style="display:grid;gap:7px;margin-top:16px;font-size:13px;font-weight:700;color:#314238">Password
+          <input name="password" type="password" autocomplete="{{pwAuto}}" maxLength="128" value="{{fPassword}}" onChange="{{onPassword}}" style="width:100%;min-height:50px;padding:0 14px;border:1px solid #c7cec8;border-radius:6px;background:#fff;color:#122019;font:inherit;font-size:16px;font-weight:500;transition:border-color .2s,box-shadow .2s" style-focus="outline:none;border-color:#103c2a;box-shadow:0 0 0 3px rgba(213,165,67,.5)">
+        </label>
+        <button type="submit" disabled="{{busy}}" style="width:100%;min-height:52px;margin-top:22px;border:0;border-radius:999px;background:#d5a543;color:#122019;font-weight:800;font-size:15px;cursor:{{submitCursor}};opacity:{{submitOpacity}};transition:background .2s,transform .2s" style-hover="background:#e2b85c" style-active="transform:scale(.98)">{{submitLabel}}</button>
+      </form>
+    </sc-if>
+    <sc-if value="{{showProfile}}" hint-placeholder-val="{{false}}">
+      <div style="display:flex;align-items:center;gap:16px;padding:18px;border-radius:8px;background:#fff;border:1px solid #e3e0d6">
+        <span aria-hidden="true" style="display:grid;place-items:center;flex:none;width:52px;height:52px;border-radius:999px;background:#103c2a;color:#d5a543;font-family:Roboto,'Helvetica Neue',Arial,sans-serif;font-size:26px">{{userInitial}}</span>
+        <div style="min-width:0">
+          <p style="margin:0;font-family:Roboto,'Helvetica Neue',Arial,sans-serif;font-size:26px;line-height:1.1;color:#103c2a">{{userName}}</p>
+          <p style="margin:4px 0 0;font-size:14px;color:#526057;overflow-wrap:anywhere">{{userEmail}}</p>
+          <p style="margin:4px 0 0;font-size:12px;font-weight:700;color:#68736b">Customer</p>
+        </div>
+      </div>
+      <button type="button" onClick="{{signOut}}" style="width:100%;min-height:52px;margin-top:18px;border-radius:999px;border:1px solid #103c2a;background:transparent;color:#103c2a;font-weight:800;font-size:15px;cursor:pointer" style-hover="background:#ece8dd">Sign out</button>
+    </sc-if>
+    <p role="status" aria-live="polite" style="min-height:22px;margin:14px 0 0;padding:{{msgPad}};border-radius:6px;background:{{msgBg}};color:{{msgColor}};font-size:14px;line-height:1.5">{{msgText}}</p>
+  </div>
+</div>
+
+</div>
+</x-dc>
+<script type="text/x-dc" data-dc-script data-props="{&quot;menuState&quot;:{&quot;editor&quot;:&quot;enum&quot;,&quot;options&quot;:[&quot;live&quot;,&quot;loading&quot;,&quot;error&quot;,&quot;empty&quot;],&quot;default&quot;:&quot;live&quot;,&quot;tsType&quot;:&quot;'live'|'loading'|'error'|'empty'&quot;,&quot;section&quot;:&quot;Preview states&quot;},&quot;soldOutDemo&quot;:{&quot;editor&quot;:&quot;boolean&quot;,&quot;default&quot;:true,&quot;tsType&quot;:&quot;boolean&quot;,&quot;section&quot;:&quot;Preview states&quot;},&quot;sampleBasket&quot;:{&quot;editor&quot;:&quot;boolean&quot;,&quot;default&quot;:true,&quot;tsType&quot;:&quot;boolean&quot;,&quot;section&quot;:&quot;Preview states&quot;},&quot;previewReducedMotion&quot;:{&quot;editor&quot;:&quot;boolean&quot;,&quot;default&quot;:false,&quot;tsType&quot;:&quot;boolean&quot;,&quot;section&quot;:&quot;Motion&quot;}}">
+const EASE = 'cubic-bezier(.16,1,.3,1)';
+const fmt = n => '₦' + Math.round(n).toLocaleString('en-NG');
+const clamp = v => Math.max(0, Math.min(1, v));
+const SIZES = [
+  { id: 'reg', label: 'Regular', inch: '10"', add: 0 },
+  { id: 'lg', label: 'Large', inch: '13"', add: 3000 },
+  { id: 'fam', label: 'Family', inch: '15"', add: 6000 }
+];
+const PX = [
+  { id: 'mozz', label: 'Extra mozzarella', add: 1000 }, { id: 'jal', label: 'Jalapeños', add: 500 },
+  { id: 'pep', label: 'Extra pepperoni', add: 1500 }, { id: 'bacon', label: 'Beef bacon', add: 1500 },
+  { id: 'guac', label: 'Guacamole', add: 1500 }, { id: 'chick', label: 'Extra chicken', add: 1500 }
+];
+const BX = [
+  { id: 'cheese', label: 'Extra cheese', add: 500 }, { id: 'bacon', label: 'Beef bacon', add: 1500 },
+  { id: 'guac', label: 'Guacamole', add: 1500 }, { id: 'fries', label: 'Side of fries', add: 1500 }
+];
+const MENU = [
+  { id: 'sig-chicken', cat: 'Pizzas', name: 'Ivy Signature Chicken', desc: 'Ivy signature sauce, grilled chicken, mozzarella, sweetcorn, onions and Ivy herbs.', price: 8500 },
+  { id: 'sig-beef', cat: 'Pizzas', name: 'Ivy Signature Beef', desc: 'Seasoned minced beef, Ivy signature sauce, mozzarella, onions, peppers and Ivy seasoning.', price: 9000 },
+  { id: 'suya', cat: 'Pizzas', name: 'Ivy Suya Pizza', desc: 'Suya-spiced beef, yaji, red onions, peppers and mozzarella on a rich tomato base.', price: 9500 },
+  { id: 'pepperoni', cat: 'Pizzas', name: 'Ivy Pepperoni', desc: 'Beef pepperoni, mozzarella and slow-cooked tomato sauce.', price: 9000 },
+  { id: 'margarita', cat: 'Pizzas', name: 'Ivy Margarita', desc: 'Tomato sauce, mozzarella and fresh basil.', price: 7500 },
+  { id: 'classic', cat: 'Burgers', name: 'Ivy Classic Burger', desc: 'Flame-grilled beef patty, cheese, lettuce, tomato and Ivy burger sauce.', price: 5000 },
+  { id: 'double', cat: 'Burgers', name: 'Ivy Double Classic', desc: 'Two flame-grilled beef patties, double cheese, pickles and Ivy burger sauce.', price: 7000 },
+  { id: 'chicken-wrap', cat: 'Burgers', name: 'Chicken Burger & Wrap', desc: 'Crispy chicken burger with a grilled chicken wrap on the side.', price: 6000 }
+];
+const DEF = { size: 'reg', extras: [], qty: 1, open: false };
+const total = b => b.reduce((s, l) => s + l.unit * l.qty, 0);
+const sample = () => [
+  { key: 'suya|lg|mozz', id: 'suya', name: 'Ivy Suya Pizza', opts: 'Large · 13" · Extra mozzarella', unit: 13500, qty: 1 },
+  { key: 'classic||', id: 'classic', name: 'Ivy Classic Burger', opts: 'Standard', unit: 5000, qty: 2 }
+];
+
+class Component extends DCLogic {
+  constructor(props) {
+    super(props);
+    const basket = (props.sampleBasket ?? true) ? sample() : [];
+    this.state = {
+      narrow: false, rm: false, filter: 'All', cfg: {}, added: {}, basket, shown: total(basket),
+      calculating: false, status: '', pill: false, sheet: false, acct: false, mode: 'signin',
+      msg: null, busy: false, user: null, form: { name: '', email: '', password: '' }, ind: { x: 0, w: 0 }, override: null
+    };
+    ['rootRef', 'navRef', 'heroRef', 'heroPar', 'heroZoom', 'heroCopy', 'marqueeRef', 'expRef', 'expA', 'expB', 'capA', 'capB',
+      'expT1', 'expT2', 'expBar', 'heroChip', 'cardsRef', 'basketRef', 'countRef', 'subRef', 'pillRef', 'pillBump', 'visitPar', 'emailRef']
+      .forEach(k => (this[k] = React.createRef()));
+    this.fRefs = { All: React.createRef(), Pizzas: React.createRef(), Burgers: React.createRef() };
+    this.addedT = {};
+  }
+
+  componentDidMount() {
+    const rm = !!this.props.previewReducedMotion || window.matchMedia('(prefers-reduced-motion: reduce)').matches;
+    this.setState({ rm, narrow: window.innerWidth < 760, short: window.innerHeight < 640 }, () => { this.measureInd(); this.setupMotion(); this.frame(); });
+    this.onResize = () => {
+      const n = window.innerWidth < 760;
+      if (n !== this.state.narrow) this.setState({ narrow: n, sheet: false });
+      const sh = window.innerHeight < 640; if (sh !== this.state.short) this.setState({ short: sh });
+      this.measureInd(); this.frame();
+    };
+    this.onScroll = () => { if (this.raf) return; this.raf = requestAnimationFrame(() => { this.raf = null; this.frame(); }); };
+    this.onKey = e => { if (e.key !== 'Escape') return; if (this.state.acct) this.closeAccount(); else if (this.state.sheet) this.setState({ sheet: false }); };
+    window.addEventListener('resize', this.onResize);
+    window.addEventListener('scroll', this.onScroll, { passive: true });
+    window.addEventListener('keydown', this.onKey);
+    if (document.fonts) document.fonts.ready.then(() => this.measureInd());
+  }
+
+  componentWillUnmount() {
+    window.removeEventListener('resize', this.onResize);
+    window.removeEventListener('scroll', this.onScroll);
+    window.removeEventListener('keydown', this.onKey);
+    this.io && this.io.disconnect();
+    this.marq && this.marq.cancel();
+    clearTimeout(this.calcT); clearTimeout(this.authT); cancelAnimationFrame(this.tickRaf);
+    document.body.style.overflow = '';
+  }
+
+  componentDidUpdate() {
+    const s = this.state, p = this.props;
+    const prev = this._prev || { filter: s.filter, narrow: s.narrow, basket: s.basket, rmProp: p.previewReducedMotion, menuState: p.menuState };
+    this._prev = { filter: s.filter, narrow: s.narrow, basket: s.basket, rmProp: p.previewReducedMotion, menuState: p.menuState };
+    if (prev.rmProp !== p.previewReducedMotion) {
+      const rm = !!p.previewReducedMotion || window.matchMedia('(prefers-reduced-motion: reduce)').matches;
+      if (rm !== s.rm) this.setState({ rm }, () => this.applyRm());
+    }
+    if (prev.menuState !== p.menuState && s.override) this.setState({ override: null });
+    if (prev.filter !== s.filter) { this.measureInd(); this.runFlip(); }
+    if (prev.narrow !== s.narrow) this.measureInd();
+    if (prev.basket !== s.basket && !s.rm) {
+      const old = new Set((prev.basket || []).map(l => l.key));
+      const root = this.basketRef.current;
+      s.basket.forEach(l => {
+        if (old.has(l.key) || !root) return;
+        const el = root.querySelector(`[data-line-id="${CSS.escape(l.key)}"]`);
+        el && el.animate([{ opacity: 0, transform: 'translateX(18px)' }, { opacity: 1, transform: 'none' }], { duration: 500, easing: EASE });
+      });
+    }
+    const lock = s.acct || (s.sheet && s.narrow);
+    document.body.style.overflow = lock ? 'hidden' : '';
+  }
+
+  applyRm() {
+    const root = this.rootRef.current; if (!root) return;
+    if (this.state.rm) {
+      this.marq && this.marq.cancel(); this.marq = null;
+      this.io && this.io.disconnect();
+      root.querySelectorAll('[data-reveal],[data-card-id]').forEach(el => { el.style.opacity = ''; });
+      [this.heroPar, this.heroCopy, this.visitPar].forEach(r => { if (r.current) { r.current.style.transform = ''; r.current.style.opacity = ''; } });
+      root.getAnimations ? root.getAnimations({ subtree: true }).forEach(a => a.finish()) : null;
+    } else {
+      this.startMarquee();
+    }
+    this.frame();
+  }
+
+  setupMotion() {
+    const root = this.rootRef.current;
+    if (!root || this.state.rm) return;
+    const z = this.heroZoom.current;
+    z && z.animate([{ transform: 'scale(1.1)' }, { transform: 'scale(1)' }], { duration: 2600, easing: EASE, fill: 'forwards' });
+    root.querySelectorAll('[data-line]').forEach((el, i) =>
+      el.animate([{ transform: 'translateY(110%)' }, { transform: 'translateY(0)' }], { duration: 1100, delay: 250 + i * 130, easing: EASE, fill: 'both' }));
+    root.querySelectorAll('[data-intro]').forEach((el, i) =>
+      el.animate([{ opacity: 0, transform: 'translateY(18px)' }, { opacity: 1, transform: 'none' }], { duration: 900, delay: 650 + i * 110, easing: EASE, fill: 'both' }));
+    this.startMarquee();
+    this.io = new IntersectionObserver(entries => {
+      entries.forEach(en => {
+        if (!en.isIntersecting) return;
+        const el = en.target; this.io.unobserve(el);
+        if (el === this.cardsRef.current) { this.enterCards(); return; }
+        const a = el.animate([{ opacity: 0, transform: 'translateY(36px)' }, { opacity: 1, transform: 'none' }], { duration: 950, easing: EASE, fill: 'both' });
+        el.style.opacity = '';
+        a.onfinish = () => a.cancel();
+      });
+    }, { rootMargin: '0px 0px -12% 0px' });
+    const vh = window.innerHeight;
+    root.querySelectorAll('[data-reveal]').forEach(el => {
+      if (el.getBoundingClientRect().top < vh * 0.9) return;
+      el.style.opacity = '0'; this.io.observe(el);
+    });
+    const grid = this.cardsRef.current;
+    if (grid && grid.getBoundingClientRect().top > vh * 0.9) this.io.observe(grid);
+  }
+
+  enterCards() {
+    const grid = this.cardsRef.current; if (!grid || this.cardsEntered) return;
+    this.cardsEntered = true;
+    grid.querySelectorAll('[data-card-id]').forEach((el, i) => {
+      el.style.opacity = '';
+      const a = el.animate([{ opacity: 0, transform: 'translateY(40px)' }, { opacity: 1, transform: 'none' }], { duration: 850, delay: i * 70, easing: EASE, fill: 'backwards' });
+      a.onfinish = () => a.cancel();
+    });
+  }
+
+  startMarquee() {
+    const m = this.marqueeRef.current;
+    if (!m || this.marq || this.state.rm) return;
+    this.marq = m.animate([{ transform: 'translateX(0)' }, { transform: 'translateX(-50%)' }], { duration: 32000, iterations: Infinity });
+  }
+
+  frame() {
+    const s = this.state, y = window.scrollY, vh = window.innerHeight;
+    const nav = this.navRef.current;
+    if (nav) {
+      const solid = y > 30;
+      nav.style.backgroundColor = solid ? 'rgba(7,27,18,.88)' : 'transparent';
+      nav.style.backdropFilter = solid ? 'blur(12px)' : 'none';
+      nav.style.boxShadow = solid ? '0 1px 0 rgba(213,165,67,.25)' : 'none';
+    }
+    const hero = this.heroRef.current, hh = hero ? hero.offsetHeight : vh;
+    if (hero) {
+      this.paintHero();
+    }
+    if (!s.rm) {
+      const exp = this.expRef.current;
+      if (exp) { const r = exp.getBoundingClientRect(); this.paintExp(clamp(-r.top / (r.height - vh))); }
+      const vp = this.visitPar.current;
+      if (vp) { const r = vp.parentElement.getBoundingClientRect(); const c = Math.max(-1, Math.min(1, (r.top + r.height / 2 - vh / 2) / vh)); vp.style.transform = `translate3d(0,${c * -6}%,0)`; }
+    }
+    const menu = document.getElementById('menu');
+    let inMenu = false;
+    if (menu) { const r = menu.getBoundingClientRect(); inMenu = r.top < vh * 0.5 && r.bottom > vh * 0.5; }
+    const pill = y > vh * 0.7 && (s.narrow || !inMenu);
+    if (pill !== s.pill) this.setState({ pill });
+  }
+
+  paintHero() {
+    if (this.state.rm) return;
+    const y = window.scrollY, hero = this.heroRef.current; if (!hero) return;
+    const hh = hero.offsetHeight; if (y > hh * 1.2) return;
+    if (this.heroPar.current) this.heroPar.current.style.transform = `translate3d(0,${y * 0.35}px,0)`;
+    if (this.heroCopy.current) {
+      const k = Math.min(y / (hh * 0.75), 1);
+      this.heroCopy.current.style.opacity = String(1 - k);
+      this.heroCopy.current.style.transform = `translate3d(0,${y * 0.12}px,0)`;
+    }
+  }
+
+  paintExp(p) {
+    const b = clamp((p - 0.38) / 0.24);
+    const e = b < 0.5 ? 4 * b * b * b : 1 - Math.pow(-2 * b + 2, 3) / 2;
+    if (this.expA.current) this.expA.current.style.transform = `scale(${1.08 - 0.08 * p})`;
+    if (this.expB.current) this.expB.current.style.clipPath = `inset(${(1 - e) * 100}% 0 0 0)`;
+    const t1 = this.expT1.current, t2 = this.expT2.current;
+    if (t1) { t1.style.opacity = String(1 - e); t1.style.transform = `translate3d(0,${-e * 40}px,0)`; t1.style.visibility = e > 0.98 ? 'hidden' : 'visible'; }
+    if (t2) { t2.style.opacity = String(e); t2.style.transform = `translate3d(0,${(1 - e) * 40}px,0)`; t2.style.visibility = e < 0.02 ? 'hidden' : 'visible'; }
+    if (this.expBar.current) this.expBar.current.style.transform = `scaleX(${p})`;
+    const aOn = e < 0.5;
+    [[this.capA.current, aOn], [this.capB.current, !aOn]].forEach(([el, on]) => {
+      if (!el) return;
+      el.style.background = on ? '#d5a543' : 'rgba(7,27,18,.75)';
+      el.style.color = on ? '#122019' : '#f7f3ea';
+    });
+  }
+
+  measureInd() {
+    const b = this.fRefs[this.state.filter] && this.fRefs[this.state.filter].current;
+    if (!b) return;
+    const x = b.offsetLeft, w = b.offsetWidth;
+    if (x !== this.state.ind.x || w !== this.state.ind.w) this.setState({ ind: { x, w } });
+  }
+
+  setFilter(f) {
+    if (f === this.state.filter) return;
+    const grid = this.cardsRef.current;
+    if (!this.state.rm && grid) {
+      this.flip = {};
+      grid.querySelectorAll('[data-card-id]').forEach(el => (this.flip[el.dataset.cardId] = el.getBoundingClientRect()));
+    }
+    this.setState({ filter: f });
+  }
+
+  runFlip() {
+    const first = this.flip; this.flip = null;
+    const grid = this.cardsRef.current;
+    if (grid) grid.querySelectorAll('[data-card-id]').forEach(el => { el.style.opacity = ''; });
+    if (!first || !grid) return;
+    this.cardsEntered = true;
+    let i = 0;
+    grid.querySelectorAll('[data-card-id]').forEach(el => {
+      el.style.opacity = '';
+      const r = el.getBoundingClientRect(), f = first[el.dataset.cardId];
+      if (f) {
+        const dx = f.left - r.left, dy = f.top - r.top;
+        if (dx || dy) el.animate([{ transform: `translate(${dx}px,${dy}px)` }, { transform: 'none' }], { duration: 600, easing: 'cubic-bezier(.65,0,.35,1)' });
+      } else {
+        el.animate([{ opacity: 0, transform: 'translateY(28px) scale(.96)' }, { opacity: 1, transform: 'none' }], { duration: 550, delay: 120 + i * 60, easing: EASE, fill: 'backwards' });
+        i++;
+      }
+    });
+  }
+
+  cfg(id) { return this.state.cfg[id] || DEF; }
+  setCfg(id, patch) { this.setState(s => ({ cfg: { ...s.cfg, [id]: { ...(s.cfg[id] || DEF), ...patch } } })); }
+  extrasFor(m) { return m.cat === 'Pizzas' ? PX : BX; }
+  unit(m, c) {
+    const size = m.cat === 'Pizzas' ? SIZES.find(z => z.id === c.size).add : 0;
+    return m.price + size + this.extrasFor(m).filter(x => c.extras.includes(x.id)).reduce((t, x) => t + x.add, 0);
+  }
+
+  add(m, ev) {
+    if (m.soldOut) return;
+    const btn = ev && ev.currentTarget;
+    const c = this.cfg(m.id), isP = m.cat === 'Pizzas';
+    const size = isP ? SIZES.find(z => z.id === c.size) : null;
+    const ex = this.extrasFor(m).filter(x => c.extras.includes(x.id)).map(x => x.label);
+    const opts = [size ? `${size.label} · ${size.inch}` : null, ...ex].filter(Boolean).join(' · ') || 'Standard';
+    const key = [m.id, size ? size.id : '', [...c.extras].sort().join('+')].join('|');
+    const basket = this.state.basket.slice();
+    const i = basket.findIndex(l => l.key === key);
+    if (i >= 0) basket[i] = { ...basket[i], qty: Math.min(20, basket[i].qty + c.qty) };
+    else basket.push({ key, id: m.id, name: m.name, opts, unit: this.unit(m, c), qty: c.qty });
+    const label = size ? `${m.name} (${size.label})` : m.name;
+    this.setState(s => ({
+      basket, added: { ...s.added, [m.id]: true }, status: `Added ${c.qty} × ${label} to your basket.`,
+      cfg: { ...s.cfg, [m.id]: { ...c, qty: 1 } }
+    }));
+    clearTimeout(this.addedT[m.id]);
+    this.addedT[m.id] = setTimeout(() => this.setState(s => ({ added: { ...s.added, [m.id]: false } })), 1600);
+    this.fly(btn);
+    this.recalc(total(basket));
+  }
+
+  fly(btn) {
+    const target = this.state.pill ? this.pillBump.current : this.countRef.current;
+    const bump = () => {
+      if (!target || this.state.rm) return;
+      target.animate([{ transform: 'scale(1)' }, { transform: 'scale(1.25)' }, { transform: 'scale(1)' }], { duration: 480, easing: EASE });
+    };
+    if (this.state.rm || !btn || !target) { bump(); return; }
+    const a = btn.getBoundingClientRect(), b = target.getBoundingClientRect();
+    const dot = document.createElement('div');
+    Object.assign(dot.style, {
+      position: 'fixed', left: a.left + a.width / 2 - 9 + 'px', top: a.top + a.height / 2 - 9 + 'px', width: '18px', height: '18px',
+      borderRadius: '50%', background: '#d5a543', boxShadow: '0 0 0 5px rgba(213,165,67,.3)', zIndex: 100, pointerEvents: 'none'
+    });
+    document.body.appendChild(dot);
+    const dx = b.left + b.width / 2 - (a.left + a.width / 2), dy = b.top + b.height / 2 - (a.top + a.height / 2);
+    const lift = Math.min(160, Math.abs(dx) * 0.3 + 60);
+    const anim = dot.animate([
+      { transform: 'translate(0,0) scale(.6)', opacity: 0 },
+      { transform: `translate(${dx * 0.15}px,${dy * 0.15 - lift * 0.6}px) scale(1.1)`, opacity: 1, offset: 0.2 },
+      { transform: `translate(${dx * 0.6}px,${dy * 0.6 - lift}px) scale(1)`, offset: 0.6 },
+      { transform: `translate(${dx}px,${dy}px) scale(.35)`, opacity: 0.7 }
+    ], { duration: 720, easing: 'cubic-bezier(.45,0,.55,1)' });
+    anim.onfinish = () => { dot.remove(); bump(); };
+  }
+
+  recalc(to) {
+    clearTimeout(this.calcT); cancelAnimationFrame(this.tickRaf);
+    const from = this.state.shown;
+    if (this.state.rm) { this.setState({ shown: to, calculating: false }); return; }
+    this.setState({ calculating: true });
+    this.calcT = setTimeout(() => {
+      this.setState({ calculating: false });
+      const t0 = performance.now(), d = 600;
+      const step = now => {
+        const k = Math.min((now - t0) / d, 1), e = 1 - Math.pow(1 - k, 3);
+        this.setState({ shown: from + (to - from) * e });
+        if (k < 1) this.tickRaf = requestAnimationFrame(step);
+      };
+      this.tickRaf = requestAnimationFrame(step);
+    }, 380);
+  }
+
+  lineQty(key, d) {
+    const basket = this.state.basket.map(l => (l.key === key ? { ...l, qty: Math.max(1, Math.min(20, l.qty + d)) } : l));
+    this.setState({ basket, status: '' });
+    this.recalc(total(basket));
+  }
+
+  removeLine(key) {
+    const l = this.state.basket.find(x => x.key === key);
+    const done = () => {
+      const basket = this.state.basket.filter(x => x.key !== key);
+      this.setState({ basket, status: l ? `Removed ${l.name}.` : '' });
+      this.recalc(total(basket));
+    };
+    const el = this.basketRef.current && this.basketRef.current.querySelector(`[data-line-id="${CSS.escape(key)}"]`);
+    if (!el || this.state.rm) { done(); return; }
+    el.animate([{ opacity: 1, transform: 'none' }, { opacity: 0, transform: 'translateX(-24px)' }], { duration: 260, easing: 'ease-in', fill: 'forwards' }).onfinish = done;
+  }
+
+  openAccount() {
+    this.lastFocus = document.activeElement;
+    this.setState({ acct: true });
+    setTimeout(() => { const el = this.emailRef.current; el && el.focus(); }, 80);
+  }
+  closeAccount() {
+    this.setState({ acct: false });
+    this.lastFocus && this.lastFocus.focus && this.lastFocus.focus();
+  }
+  setForm(k, v) { this.setState(s => ({ form: { ...s.form, [k]: v } })); }
+  submit(e) {
+    e.preventDefault();
+    const { mode, form } = this.state;
+    if (mode === 'signup' && !form.name.trim()) { this.setState({ msg: { kind: 'error', text: 'Add your full name to create an account.' } }); return; }
+    if (!/^\S+@\S+\.\S+$/.test(form.email) || form.password.length < 8) {
+      this.setState({ msg: { kind: 'error', text: 'Enter a valid email address and a password of at least 8 characters.' } }); return;
+    }
+    this.setState({ busy: true, msg: null });
+    this.authT = setTimeout(() => {
+      const name = form.name.trim() || form.email.split('@')[0];
+      this.setState({
+        busy: false, mode: 'profile', user: { name, email: form.email }, form: { name: '', email: '', password: '' },
+        msg: { kind: 'ok', text: mode === 'signup' ? 'Account created. Welcome to The Ivy.' : 'You are signed in.' }
+      });
+    }, 1000);
+  }
+
+  renderVals() {
+    const s = this.state, rm = s.rm, narrow = s.narrow;
+    const ms = s.override || this.props.menuState || 'live';
+    const soldOutDemo = this.props.soldOutDemo ?? true;
+    const items = MENU.map(m => ({ ...m, soldOut: soldOutDemo && m.id === 'double' }));
+    const filtered = items.filter(m => s.filter === 'All' || m.cat === s.filter);
+    const list = ms === 'live' ? filtered : [];
+    const count = s.basket.reduce((t, l) => t + l.qty, 0);
+    const empty = s.basket.length === 0;
+    const ease = 'cubic-bezier(.32,.72,0,1)';
+
+    const cards = list.map(m => {
+      const c = this.cfg(m.id), isP = m.cat === 'Pizzas', ex = this.extrasFor(m), added = !!s.added[m.id];
+      return {
+        id: m.id, name: m.name, desc: m.desc, catLabel: isP ? 'Pizza' : 'Burger', from: fmt(m.price), soldOut: !!m.soldOut, hasSizes: isP,
+        border: added ? 'rgba(213,165,67,.95)' : 'rgba(213,165,67,.22)', shadow: added ? '0 0 0 3px rgba(213,165,67,.22)' : 'none', opacity: m.soldOut ? 0.6 : 1,
+        sizes: isP ? SIZES.map(z => {
+          const on = c.size === z.id;
+          return { label: z.label, inch: z.inch, extra: z.add ? '+' + fmt(z.add) : 'Base', ariaChecked: String(on),
+            bg: on ? '#d5a543' : 'transparent', border: on ? '#d5a543' : 'rgba(255,255,255,.2)', color: on ? '#122019' : '#e8efe9',
+            onClick: () => this.setCfg(m.id, { size: z.id }) };
+        }) : [],
+        open: String(c.open), extrasId: 'ex-' + m.id, plusRot: c.open ? '45deg' : '0deg', rows: c.open ? '1fr' : '0fr', vis: c.open ? 'visible' : 'hidden',
+        extrasLabel: c.extras.length ? `Extras · ${c.extras.length} added` : `Add extras (${ex.length})`,
+        toggle: () => this.setCfg(m.id, { open: !c.open }),
+        extras: ex.map(x => ({
+          label: x.label, price: '+' + fmt(x.add), checked: c.extras.includes(x.id),
+          onChange: () => this.setCfg(m.id, { extras: c.extras.includes(x.id) ? c.extras.filter(i => i !== x.id) : [...c.extras, x.id] })
+        })),
+        qty: c.qty, dec: () => this.setCfg(m.id, { qty: Math.max(1, c.qty - 1) }), inc: () => this.setCfg(m.id, { qty: Math.min(20, c.qty + 1) }),
+        btnLabel: m.soldOut ? 'Unavailable' : added ? 'Added ✓' : `Add · ${fmt(this.unit(m, c) * c.qty)}`,
+        btnBg: m.soldOut ? 'rgba(255,255,255,.1)' : added ? '#f7f3ea' : '#d5a543', btnColor: m.soldOut ? '#c3d1c7' : '#122019',
+        btnCursor: m.soldOut ? 'not-allowed' : 'pointer', add: e => this.add(m, e)
+      };
+    });
+
+    const basketStyle = narrow ? {
+      position: 'fixed', left: 0, right: 0, bottom: 0, zIndex: 70, maxHeight: '88vh', display: 'flex', flexDirection: 'column',
+      background: '#f7f3ea', color: '#122019', borderRadius: '18px 18px 0 0', borderTop: '4px solid #d5a543', boxShadow: '0 -20px 60px rgba(0,0,0,.35)',
+      transform: s.sheet ? 'translateY(0)' : 'translateY(105%)', visibility: s.sheet ? 'visible' : 'hidden',
+      transition: rm ? 'none' : `transform .55s ${ease}, visibility .55s`
+    } : {
+      position: 'sticky', top: '96px', flex: '1 1 340px', maxWidth: '420px', maxHeight: 'calc(100vh - 120px)', display: 'flex', flexDirection: 'column',
+      background: '#f7f3ea', color: '#122019', borderRadius: '8px', borderTop: '4px solid #d5a543', boxShadow: '0 30px 80px rgba(0,0,0,.28)', overflow: 'hidden'
+    };
+
+    const isUp = s.mode === 'signup', form = s.form;
+    return {
+      rootRef: this.rootRef, navRef: this.navRef, heroRef: this.heroRef, heroPar: this.heroPar, heroZoom: this.heroZoom, heroCopy: this.heroCopy,
+      marqueeRef: this.marqueeRef, expRef: this.expRef, expA: this.expA, expB: this.expB, capA: this.capA, capB: this.capB,
+      expT1: this.expT1, expT2: this.expT2, expBar: this.expBar, cardsRef: this.cardsRef, basketRef: this.basketRef, countRef: this.countRef,
+      subRef: this.subRef, pillRef: this.pillRef, pillBump: this.pillBump, visitPar: this.visitPar, emailRef: this.emailRef,
+      narrow, wide: !narrow, rm, motionOn: !rm, heroChip: this.heroChip,
+      heroH: 'auto', heroObjPos: narrow ? '30% 50%' : '50% 50%', heroCopyMax: narrow ? '100%' : '760px', showSteps: !narrow && !this.state.short, heroPMax: narrow ? '520px' : 'min(520px,40vw)', 
+      heroOverlay: narrow
+        ? 'linear-gradient(0deg,rgba(7,27,18,.96) 0%,rgba(7,27,18,.85) 32%,rgba(7,27,18,.25) 60%,rgba(7,27,18,.1) 80%),linear-gradient(180deg,rgba(7,27,18,.6) 0%,rgba(7,27,18,0) 16%)'
+        : 'linear-gradient(90deg,rgba(7,27,18,.92) 0%,rgba(7,27,18,.78) 30%,rgba(7,27,18,.35) 52%,rgba(7,27,18,0) 70%),linear-gradient(0deg,rgba(7,27,18,.7) 0%,rgba(7,27,18,0) 35%),linear-gradient(180deg,rgba(7,27,18,.5) 0%,rgba(7,27,18,0) 16%)',
+      chipTop: narrow ? '84px' : 'auto', chipBottom: narrow ? 'auto' : 'clamp(56px,9vh,104px)',
+      quickAdd: e => this.add(MENU.find(m => m.id === 'suya'), e),
+      accountLabel: s.user ? s.user.name.split(' ')[0] : narrow ? 'Account' : 'My account',
+      openAccount: () => this.openAccount(),
+      stripWidth: rm ? '100%' : 'max-content', stripWrap: rm ? 'wrap' : 'nowrap',
+      expCols: narrow ? 'minmax(0,1fr)' : 'minmax(0,1.2fr) minmax(0,.8fr)', expRows: narrow ? 'minmax(0,1fr) auto' : 'minmax(0,1fr)',
+      expPad: narrow ? '80px 18px 24px' : '110px clamp(18px,4vw,48px) 48px', expPhotoH: narrow ? '100%' : 'min(72vh,680px)', expTextH: narrow ? '230px' : '340px',
+      filters: ['All', 'Pizzas', 'Burgers'].map(f => ({
+        label: f, count: f === 'All' ? MENU.length : MENU.filter(m => m.cat === f).length, ref: this.fRefs[f],
+        pressed: String(s.filter === f), color: s.filter === f ? '#122019' : '#e8efe9', onClick: () => this.setFilter(f)
+      })),
+      indX: s.ind.x + 'px', indW: s.ind.w + 'px', indTransition: rm ? 'none' : 'transform .5s cubic-bezier(.65,0,.35,1), width .5s cubic-bezier(.65,0,.35,1)',
+      loading: ms === 'loading', menuError: ms === 'error', menuEmpty: ms === 'empty' || (ms === 'live' && list.length === 0),
+      emptyTitle: s.filter === 'All' ? 'Nothing on the menu right now.' : `No ${s.filter.toLowerCase()} available right now.`,
+      skeletons: [0, 1, 2, 3, 4, 5].map(i => ({ delay: i * 0.12 + 's' })), pulse: rm ? 'none' : 'ivyPulse 1.4s ease-in-out infinite',
+      retry: () => { this.setState({ override: 'loading' }); setTimeout(() => this.setState({ override: 'live' }), 1200); },
+      showAll: () => { this.setFilter('All'); if (ms === 'empty') this.setState({ override: 'live' }); },
+      cards,
+      basketStyle, sheetScrimOpacity: narrow && s.sheet ? 1 : 0, sheetScrimPE: narrow && s.sheet ? 'auto' : 'none',
+      closeSheet: () => this.setState({ sheet: false }),
+      countLabel: count === 1 ? '1 item' : `${count} items`, basketEmpty: empty,
+      lines: s.basket.map(l => ({
+        key: l.key, name: l.name, opts: l.opts, qty: l.qty, total: fmt(l.unit * l.qty), atMin: l.qty <= 1, decOpacity: l.qty <= 1 ? 0.35 : 1,
+        dec: () => this.lineQty(l.key, -1), inc: () => this.lineQty(l.key, 1), remove: () => this.removeLine(l.key)
+      })),
+      calculating: s.calculating, subtotal: fmt(s.shown), subColor: s.calculating ? '#9aa59d' : '#103c2a', status: s.status,
+      pillText: empty ? 'Start your order' : `${count === 1 ? '1 item' : count + ' items'} · ${fmt(s.shown)}`,
+      pillCta: empty ? 'Menu →' : 'View basket', pillHidden: String(!s.pill), pillTab: s.pill ? 0 : -1,
+      pillY: s.pill ? '0' : '140%', pillOpacity: s.pill ? 1 : 0, pillVis: s.pill ? 'visible' : 'hidden',
+      pillTransition: rm ? 'opacity .2s, visibility .2s' : `transform .55s ${ease}, opacity .3s, visibility .55s`,
+      pillClick: () => {
+        if (empty || !narrow) { const m = document.getElementById('menu'); m && window.scrollTo({ top: m.getBoundingClientRect().top + window.scrollY - 70, behavior: rm ? 'auto' : 'smooth' }); return; }
+        this.setState({ sheet: true });
+      },
+      acctOpacity: s.acct ? 1 : 0, acctVis: s.acct ? 'visible' : 'hidden',
+      acctPanelT: s.acct || rm ? 'none' : 'translateY(24px) scale(.97)', acctPanelTransition: rm ? 'none' : `transform .5s ${ease}`,
+      acctBackdrop: e => { if (e.target === e.currentTarget) this.closeAccount(); }, closeAccount: () => this.closeAccount(),
+      acctIntro: s.user ? 'You are signed in to your Ivy account.' : isUp ? 'Create an Ivy account to save your details for faster ordering.' : 'Sign in to your Ivy account or create one to get started.',
+      showForm: !s.user, showProfile: !!s.user,
+      tabSignin: String(!isUp), tabSignup: String(isUp), tabSigninColor: isUp ? '#68736b' : '#103c2a', tabSignupColor: isUp ? '#103c2a' : '#68736b', tabX: isUp ? '100%' : '0',
+      toSignin: () => this.setState({ mode: 'signin', msg: null }), toSignup: () => this.setState({ mode: 'signup', msg: null }),
+      nameRows: isUp ? '1fr' : '0fr', nameVis: isUp ? 'visible' : 'hidden', pwAuto: isUp ? 'new-password' : 'current-password',
+      fName: form.name, fEmail: form.email, fPassword: form.password,
+      onName: e => this.setForm('name', e.target.value), onEmail: e => this.setForm('email', e.target.value), onPassword: e => this.setForm('password', e.target.value),
+      submit: e => this.submit(e), busy: s.busy, submitCursor: s.busy ? 'wait' : 'pointer', submitOpacity: s.busy ? 0.7 : 1,
+      submitLabel: s.busy ? (isUp ? 'Creating account…' : 'Signing in…') : isUp ? 'Create account' : 'Sign in',
+      userName: s.user ? s.user.name : '', userEmail: s.user ? s.user.email : '', userInitial: s.user ? s.user.name.charAt(0).toUpperCase() : '',
+      signOut: () => this.setState({ user: null, mode: 'signin', msg: { kind: 'ok', text: 'You have signed out.' } }),
+      msgText: s.msg ? s.msg.text : '', msgPad: s.msg ? '10px 12px' : '0',
+      msgBg: !s.msg ? 'transparent' : s.msg.kind === 'error' ? '#f6e3df' : '#e3eee4', msgColor: s.msg && s.msg.kind === 'error' ? '#8f2a22' : '#285a37'
+    };
+  }
+}
+</script>
+</body>
+</html>

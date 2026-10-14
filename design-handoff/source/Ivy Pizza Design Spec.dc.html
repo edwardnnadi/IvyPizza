@@ -1,0 +1,376 @@
+<!DOCTYPE html>
+<html>
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<script src="./support.js"></script>
+</head>
+<body>
+<x-dc>
+<helmet>
+<title>The Ivy Pizza · Design spec</title>
+<link href="https://fonts.googleapis.com/css2?family=Roboto:wght@400;500;700&amp;family=Nunito+Sans:opsz,wght@6..12,400;6..12,500;6..12,600;6..12,700;6..12,800;6..12,900&amp;family=JetBrains+Mono:wght@400;600&amp;display=swap" rel="stylesheet">
+<style>
+*{box-sizing:border-box}
+body{margin:0;background:#f7f3ea;color:#122019;font-family:'Nunito Sans',system-ui,sans-serif;-webkit-font-smoothing:antialiased}
+a{color:#103c2a;text-decoration:underline;text-underline-offset:3px}
+a:hover{color:#7d5c1c}
+</style>
+</helmet>
+<div style="max-width:1240px;margin:0 auto;padding:56px clamp(18px,4vw,48px) 120px">
+  <header style="display:flex;flex-wrap:wrap;justify-content:space-between;align-items:flex-end;gap:24px;padding-bottom:32px;border-bottom:1px solid #d9d5c9">
+    <div>
+      <p style="margin:0 0 10px;font-family:Roboto,'Helvetica Neue',Arial,sans-serif;font-size:22px;letter-spacing:.16em;color:#103c2a">THE IVY <span style="color:#7d5c1c">PIZZA</span></p>
+      <h1 style="margin:0;font-family:Roboto,'Helvetica Neue',Arial,sans-serif;font-weight:400;font-size:clamp(44px,6vw,72px);line-height:1;color:#103c2a">Design &amp; motion spec</h1>
+    </div>
+    <p style="margin:0;max-width:420px;font-size:15px;line-height:1.6;color:#526057">Companion to <a href="Ivy Pizza Motion Site.dc.html">Ivy Pizza Motion Site</a>. Tokens, motion rules and component states for the rebuild into <code style="font-family:'JetBrains Mono',monospace;font-size:13px">src/style.css</code> and <code style="font-family:'JetBrains Mono',monospace;font-size:13px">src/menu.ts</code>.</p>
+  </header>
+
+  <section style="padding:56px 0;border-bottom:1px solid #d9d5c9">
+    <h2 style="margin:0 0 28px;font-family:Roboto,'Helvetica Neue',Arial,sans-serif;font-weight:400;font-size:40px;color:#103c2a">01 · Colour</h2>
+    <div style="display:grid;grid-template-columns:repeat(auto-fill,minmax(170px,1fr));gap:12px">
+      <sc-for list="{{colors}}" as="c" hint-placeholder-count="10">
+        <div style="border-radius:8px;overflow:hidden;border:1px solid #e1ddd2;background:#fff">
+          <div style="height:84px;background:{{c.hex}}"></div>
+          <div style="padding:12px 14px">
+            <p style="margin:0;font-size:14px;font-weight:800">{{c.name}}</p>
+            <p style="margin:2px 0 0;font-family:'JetBrains Mono',monospace;font-size:12px;color:#526057">{{c.token}} · {{c.hex}}</p>
+            <p style="margin:6px 0 0;font-size:12px;line-height:1.4;color:#526057">{{c.use}}</p>
+          </div>
+        </div>
+      </sc-for>
+    </div>
+    <div style="margin-top:20px;padding:16px 18px;border-radius:8px;background:#fff;border:1px solid #e1ddd2;font-size:14px;line-height:1.6;color:#314238">
+      <strong>Gold on cream fails AA</strong> (#d5a543 on #f7f3ea ≈ 2.1:1). On light grounds, eyebrows and small gold text use <span style="font-family:'JetBrains Mono',monospace;font-size:13px">--gold-ink #7d5c1c</span> (≈ 5.6:1). Brand gold stays for fills (buttons, chips, indicators) with ink text on top (≈ 8:1), and for text on green (≈ 6.9:1 on #102d20).
+    </div>
+  </section>
+
+  <section style="padding:56px 0;border-bottom:1px solid #d9d5c9">
+    <h2 style="margin:0 0 28px;font-family:Roboto,'Helvetica Neue',Arial,sans-serif;font-weight:400;font-size:40px;color:#103c2a">02 · Type</h2>
+    <p style="margin:0 0 24px;max-width:640px;font-size:15px;line-height:1.6;color:#526057">Roboto (display, 400–700) replaces Georgia. Nunito Sans (400–900, variable with optical size; a free Museo Sans–style humanist sans) replaces Arial for UI and body. Load with <code style="font-family:'JetBrains Mono',monospace;font-size:13px">display=swap</code> and preconnect.</p>
+    <div style="display:grid;gap:0;border-top:1px solid #e1ddd2">
+      <sc-for list="{{type}}" as="t" hint-placeholder-count="7">
+        <div style="display:grid;grid-template-columns:minmax(120px,180px) minmax(0,1fr);gap:20px;align-items:baseline;padding:18px 0;border-bottom:1px solid #e1ddd2">
+          <div>
+            <p style="margin:0;font-size:13px;font-weight:800">{{t.name}}</p>
+            <p style="margin:2px 0 0;font-family:'JetBrains Mono',monospace;font-size:11px;color:#526057">{{t.spec}}</p>
+          </div>
+          <p style="margin:0;font-family:{{t.family}};font-size:{{t.size}};font-weight:{{t.weight}};line-height:{{t.lh}};letter-spacing:{{t.ls}};text-transform:{{t.tt}};color:#103c2a;overflow-wrap:anywhere">{{t.sample}}</p>
+        </div>
+      </sc-for>
+    </div>
+  </section>
+
+  <section style="padding:56px 0;border-bottom:1px solid #d9d5c9">
+    <h2 style="margin:0 0 28px;font-family:Roboto,'Helvetica Neue',Arial,sans-serif;font-weight:400;font-size:40px;color:#103c2a">03 · Space, radius, elevation</h2>
+    <div style="display:grid;grid-template-columns:repeat(auto-fit,minmax(min(100%,320px),1fr));gap:32px">
+      <div>
+        <p style="margin:0 0 14px;font-size:13px;font-weight:800">Spacing (4px base)</p>
+        <div style="display:grid;gap:8px">
+          <sc-for list="{{space}}" as="s" hint-placeholder-count="9">
+            <div style="display:flex;align-items:center;gap:12px;font-family:'JetBrains Mono',monospace;font-size:12px;color:#526057">
+              <span style="width:72px">{{s.token}}</span><span style="height:10px;width:{{s.px}};background:#d5a543;border-radius:2px"></span><span>{{s.px}}</span>
+            </div>
+          </sc-for>
+        </div>
+      </div>
+      <div>
+        <p style="margin:0 0 14px;font-size:13px;font-weight:800">Radius</p>
+        <div style="display:flex;flex-wrap:wrap;gap:14px">
+          <div style="display:grid;gap:6px;justify-items:center;font-family:'JetBrains Mono',monospace;font-size:11px;color:#526057"><span style="width:72px;height:56px;border-radius:6px;background:#103c2a"></span>--r-sm 6</div>
+          <div style="display:grid;gap:6px;justify-items:center;font-family:'JetBrains Mono',monospace;font-size:11px;color:#526057"><span style="width:72px;height:56px;border-radius:8px;background:#103c2a"></span>--r-md 8</div>
+          <div style="display:grid;gap:6px;justify-items:center;font-family:'JetBrains Mono',monospace;font-size:11px;color:#526057"><span style="width:72px;height:56px;border-radius:18px;background:#103c2a"></span>--r-sheet 18</div>
+          <div style="display:grid;gap:6px;justify-items:center;font-family:'JetBrains Mono',monospace;font-size:11px;color:#526057"><span style="width:72px;height:56px;border-radius:999px;background:#d5a543"></span>--r-pill</div>
+        </div>
+        <p style="margin:28px 0 14px;font-size:13px;font-weight:800">Elevation</p>
+        <div style="display:grid;gap:10px;font-family:'JetBrains Mono',monospace;font-size:11px;color:#526057">
+          <span>--shadow-card · none (border 1px gold/22%)</span>
+          <span>--shadow-float · 0 18px 44px rgb(0 0 0/.35)</span>
+          <span>--shadow-panel · 0 30px 80px rgb(0 0 0/.28)</span>
+          <span>--shadow-dialog · 0 30px 90px rgb(0 0 0/.45)</span>
+          <span>--ring-focus · 2px solid #d5a543, offset 3px</span>
+        </div>
+      </div>
+      <div>
+        <p style="margin:0 0 14px;font-size:13px;font-weight:800">Layout</p>
+        <div style="display:grid;gap:10px;font-family:'JetBrains Mono',monospace;font-size:11px;line-height:1.5;color:#526057">
+          <span>--container · 1320px</span>
+          <span>--gutter · clamp(18px, 4vw, 48px)</span>
+          <span>--section-y · clamp(72px, 10vw, 128px)</span>
+          <span>menu grid · auto-fill minmax(290px,1fr), gap 16</span>
+          <span>basket · sticky top 96, flex 1 1 340, max 420</span>
+          <span>breakpoint · 760px (nav, basket → sheet, experience stack)</span>
+          <span>touch targets · ≥ 44px</span>
+        </div>
+      </div>
+    </div>
+  </section>
+
+  <section style="padding:56px 0;border-bottom:1px solid #d9d5c9">
+    <h2 style="margin:0 0 10px;font-family:Roboto,'Helvetica Neue',Arial,sans-serif;font-weight:400;font-size:40px;color:#103c2a">04 · Motion</h2>
+    <p style="margin:0 0 24px;max-width:700px;font-size:15px;line-height:1.6;color:#526057">Transform and opacity only, plus one clip-path reveal. No library needed: Web Animations API, IntersectionObserver and one rAF-throttled scroll handler (~3 KB). GSAP is not required.</p>
+    <div style="display:flex;flex-wrap:wrap;gap:10px;margin-bottom:24px">
+      <sc-for list="{{eases}}" as="e" hint-placeholder-count="4">
+        <span style="padding:8px 12px;border-radius:999px;background:#fff;border:1px solid #e1ddd2;font-family:'JetBrains Mono',monospace;font-size:12px"><strong style="font-family:'Nunito Sans';font-weight:800">{{e.name}}</strong> {{e.val}}</span>
+      </sc-for>
+    </div>
+    <div style="overflow-x:auto;border:1px solid #e1ddd2;border-radius:8px;background:#fff">
+      <table style="width:100%;min-width:860px;border-collapse:collapse;font-size:13px;line-height:1.45;text-align:left">
+        <thead>
+          <tr style="background:#103c2a;color:#f7f3ea">
+            <th style="padding:12px 14px;font-weight:800">Element</th>
+            <th style="padding:12px 14px;font-weight:800">Trigger</th>
+            <th style="padding:12px 14px;font-weight:800">Animation</th>
+            <th style="padding:12px 14px;font-weight:800">Duration · easing</th>
+            <th style="padding:12px 14px;font-weight:800">Reduced motion</th>
+          </tr>
+        </thead>
+        <tbody>
+          <sc-for list="{{motion}}" as="m" hint-placeholder-count="12">
+            <tr style="border-top:1px solid #ece8dd;vertical-align:top">
+              <td style="padding:12px 14px;font-weight:800;color:#103c2a">{{m.el}}</td>
+              <td style="padding:12px 14px;color:#314238">{{m.trigger}}</td>
+              <td style="padding:12px 14px;color:#314238">{{m.anim}}</td>
+              <td style="padding:12px 14px;font-family:'JetBrains Mono',monospace;font-size:12px;color:#526057">{{m.dur}}</td>
+              <td style="padding:12px 14px;color:#314238">{{m.rm}}</td>
+            </tr>
+          </sc-for>
+        </tbody>
+      </table>
+    </div>
+  </section>
+
+  <section style="padding:56px 0;border-bottom:1px solid #d9d5c9">
+    <h2 style="margin:0 0 10px;font-family:Roboto,'Helvetica Neue',Arial,sans-serif;font-weight:400;font-size:40px;color:#103c2a">05 · Menu card states</h2>
+    <p style="margin:0 0 24px;font-size:15px;color:#526057">Rendered per row from the database. All states share one shell.</p>
+    <div style="padding:clamp(18px,3vw,32px);border-radius:12px;background:#102d20;display:grid;grid-template-columns:repeat(auto-fill,minmax(min(100%,260px),1fr));gap:16px;color:#fff">
+      <div>
+        <p style="margin:0 0 8px;font-family:'JetBrains Mono',monospace;font-size:11px;color:#9fb5a7">default</p>
+        <div style="display:flex;flex-direction:column;padding:22px;border-radius:8px;background:#173728;border:1px solid rgba(213,165,67,.22)">
+          <span style="font-size:11px;font-weight:800;letter-spacing:.2em;text-transform:uppercase;color:#9fb5a7">Pizza</span>
+          <h3 style="margin:12px 0 0;font-family:Roboto,'Helvetica Neue',Arial,sans-serif;font-weight:400;font-size:28px;color:#f7f3ea">Ivy Margarita</h3>
+          <p style="margin:8px 0 0;font-size:13px;line-height:1.5;color:#c3d1c7">Tomato sauce, mozzarella and fresh basil.</p>
+          <p style="margin:14px 0 0;font-size:14px;font-weight:700;color:#e3bf70">From ₦7,500</p>
+          <div style="display:grid;grid-template-columns:repeat(3,1fr);gap:6px;margin-top:12px">
+            <span style="display:grid;place-items:center;min-height:48px;border-radius:8px;background:#d5a543;color:#122019;font-size:12px;font-weight:800">Regular</span>
+            <span style="display:grid;place-items:center;min-height:48px;border-radius:8px;border:1px solid rgba(255,255,255,.2);font-size:12px;font-weight:800">Large</span>
+            <span style="display:grid;place-items:center;min-height:48px;border-radius:8px;border:1px solid rgba(255,255,255,.2);font-size:12px;font-weight:800">Family</span>
+          </div>
+          <span style="display:grid;place-items:center;min-height:46px;margin-top:14px;border-radius:999px;background:#d5a543;color:#122019;font-size:14px;font-weight:800">Add · ₦7,500</span>
+        </div>
+      </div>
+      <div>
+        <p style="margin:0 0 8px;font-family:'JetBrains Mono',monospace;font-size:11px;color:#9fb5a7">configured · extras open</p>
+        <div style="display:flex;flex-direction:column;padding:22px;border-radius:8px;background:#173728;border:1px solid rgba(213,165,67,.22)">
+          <span style="font-size:11px;font-weight:800;letter-spacing:.2em;text-transform:uppercase;color:#9fb5a7">Pizza</span>
+          <h3 style="margin:12px 0 0;font-family:Roboto,'Helvetica Neue',Arial,sans-serif;font-weight:400;font-size:28px;color:#f7f3ea">Ivy Suya Pizza</h3>
+          <p style="margin:14px 0 0;font-size:14px;font-weight:700;color:#e3bf70">From ₦9,500</p>
+          <div style="display:flex;justify-content:space-between;align-items:center;margin-top:12px;padding-top:12px;border-top:1px solid rgba(213,165,67,.2);color:#e3bf70;font-size:13px;font-weight:700">Extras · 1 added<span style="display:grid;place-items:center;width:24px;height:24px;border-radius:999px;border:1px solid rgba(213,165,67,.5);transform:rotate(45deg)">+</span></div>
+          <div style="display:grid;grid-template-columns:1fr 1fr;gap:8px 12px;margin-top:10px;font-size:12px;color:#dbe4dd">
+            <span>☑ Extra mozzarella</span><span>☐ Jalapeños</span><span>☐ Beef bacon</span><span>☐ Guacamole</span>
+          </div>
+          <span style="display:grid;place-items:center;min-height:46px;margin-top:14px;border-radius:999px;background:#d5a543;color:#122019;font-size:14px;font-weight:800">Add · ₦13,500</span>
+        </div>
+      </div>
+      <div>
+        <p style="margin:0 0 8px;font-family:'JetBrains Mono',monospace;font-size:11px;color:#9fb5a7">just added (1.6s)</p>
+        <div style="display:flex;flex-direction:column;padding:22px;border-radius:8px;background:#173728;border:1px solid rgba(213,165,67,.95);box-shadow:0 0 0 3px rgba(213,165,67,.22)">
+          <span style="font-size:11px;font-weight:800;letter-spacing:.2em;text-transform:uppercase;color:#9fb5a7">Burger</span>
+          <h3 style="margin:12px 0 0;font-family:Roboto,'Helvetica Neue',Arial,sans-serif;font-weight:400;font-size:28px;color:#f7f3ea">Ivy Classic Burger</h3>
+          <p style="margin:8px 0 0;font-size:13px;line-height:1.5;color:#c3d1c7">Flame-grilled beef patty, cheese, lettuce, tomato and Ivy burger sauce.</p>
+          <p style="margin:14px 0 0;font-size:14px;font-weight:700;color:#e3bf70">From ₦5,000</p>
+          <span style="display:grid;place-items:center;min-height:46px;margin-top:14px;border-radius:999px;background:#f7f3ea;color:#122019;font-size:14px;font-weight:800">Added ✓</span>
+        </div>
+      </div>
+      <div>
+        <p style="margin:0 0 8px;font-family:'JetBrains Mono',monospace;font-size:11px;color:#9fb5a7">unavailable</p>
+        <div style="display:flex;flex-direction:column;padding:22px;border-radius:8px;background:#173728;border:1px solid rgba(213,165,67,.22);opacity:.6">
+          <div style="display:flex;justify-content:space-between;align-items:center"><span style="font-size:11px;font-weight:800;letter-spacing:.2em;text-transform:uppercase;color:#9fb5a7">Burger</span><span style="padding:5px 10px;border-radius:999px;background:#f0c97a;color:#2a1f12;font-size:11px;font-weight:800">Sold out today</span></div>
+          <h3 style="margin:12px 0 0;font-family:Roboto,'Helvetica Neue',Arial,sans-serif;font-weight:400;font-size:28px;color:#f7f3ea">Ivy Double Classic</h3>
+          <p style="margin:14px 0 0;font-size:14px;font-weight:700;color:#e3bf70">From ₦7,000</p>
+          <span style="display:grid;place-items:center;min-height:46px;margin-top:14px;border-radius:999px;background:rgba(255,255,255,.1);color:#c3d1c7;font-size:14px;font-weight:800">Unavailable</span>
+        </div>
+      </div>
+      <div>
+        <p style="margin:0 0 8px;font-family:'JetBrains Mono',monospace;font-size:11px;color:#9fb5a7">loading</p>
+        <div style="display:flex;flex-direction:column;gap:12px;min-height:300px;padding:22px;border-radius:8px;background:#173728;border:1px solid rgba(213,165,67,.14)">
+          <span style="width:30%;height:10px;border-radius:999px;background:rgba(255,255,255,.1)"></span>
+          <span style="width:75%;height:28px;border-radius:6px;background:rgba(255,255,255,.12)"></span>
+          <span style="width:100%;height:12px;border-radius:999px;background:rgba(255,255,255,.08)"></span>
+          <span style="width:85%;height:12px;border-radius:999px;background:rgba(255,255,255,.08)"></span>
+          <span style="flex:1"></span>
+          <span style="height:46px;border-radius:999px;background:rgba(213,165,67,.18)"></span>
+        </div>
+      </div>
+      <div style="display:grid;gap:16px;align-content:start">
+        <div>
+          <p style="margin:0 0 8px;font-family:'JetBrains Mono',monospace;font-size:11px;color:#9fb5a7">empty category</p>
+          <div style="padding:24px;border-radius:8px;border:1px dashed rgba(213,165,67,.4);text-align:center">
+            <p style="margin:0;font-family:Roboto,'Helvetica Neue',Arial,sans-serif;font-size:24px">No burgers available right now.</p>
+            <p style="margin:6px 0 0;font-size:13px;color:#c3d1c7">Check back soon, or browse the full menu.</p>
+          </div>
+        </div>
+        <div>
+          <p style="margin:0 0 8px;font-family:'JetBrains Mono',monospace;font-size:11px;color:#9fb5a7">error</p>
+          <div style="padding:20px;border-radius:8px;background:#2a1f12;border:1px solid rgba(240,201,122,.4)">
+            <p style="margin:0;font-family:Roboto,'Helvetica Neue',Arial,sans-serif;font-size:24px">We couldn't load the menu.</p>
+            <p style="margin:6px 0 12px;font-size:13px;color:#e9dcc2">Check your connection and try again.</p>
+            <span style="display:inline-grid;place-items:center;min-height:40px;padding:0 18px;border-radius:999px;background:#d5a543;color:#122019;font-size:13px;font-weight:800">Try again</span>
+          </div>
+        </div>
+      </div>
+    </div>
+  </section>
+
+  <section style="padding:56px 0;border-bottom:1px solid #d9d5c9">
+    <h2 style="margin:0 0 24px;font-family:Roboto,'Helvetica Neue',Arial,sans-serif;font-weight:400;font-size:40px;color:#103c2a">06 · Basket states</h2>
+    <div style="display:grid;grid-template-columns:repeat(auto-fill,minmax(min(100%,300px),1fr));gap:20px">
+      <div>
+        <p style="margin:0 0 8px;font-family:'JetBrains Mono',monospace;font-size:11px;color:#526057">empty</p>
+        <div style="border-radius:8px;border-top:4px solid #d5a543;background:#fff;box-shadow:0 20px 50px rgba(16,60,42,.12);padding:20px 22px">
+          <div style="display:flex;justify-content:space-between;align-items:center"><span style="font-family:Roboto,'Helvetica Neue',Arial,sans-serif;font-size:30px;color:#103c2a">Basket</span><span style="padding:5px 11px;border-radius:999px;background:#103c2a;color:#f7f3ea;font-size:12px;font-weight:800">0 items</span></div>
+          <div style="margin-top:14px;padding:22px 0;border-top:1px solid #e3e0d6">
+            <p style="margin:0;font-family:Roboto,'Helvetica Neue',Arial,sans-serif;font-size:22px;color:#103c2a">Your basket is empty.</p>
+            <p style="margin:4px 0 0;font-size:13px;color:#526057">Pick a pizza or burger to get started.</p>
+          </div>
+          <div style="display:flex;justify-content:space-between;padding-top:14px;border-top:1px solid #e3e0d6;font-weight:800"><span style="color:#526057;font-size:14px">Subtotal</span><span style="font-size:22px;color:#103c2a">₦0</span></div>
+        </div>
+      </div>
+      <div>
+        <p style="margin:0 0 8px;font-family:'JetBrains Mono',monospace;font-size:11px;color:#526057">filled</p>
+        <div style="border-radius:8px;border-top:4px solid #d5a543;background:#fff;box-shadow:0 20px 50px rgba(16,60,42,.12);padding:20px 22px">
+          <div style="display:flex;justify-content:space-between;align-items:center"><span style="font-family:Roboto,'Helvetica Neue',Arial,sans-serif;font-size:30px;color:#103c2a">Basket</span><span style="padding:5px 11px;border-radius:999px;background:#103c2a;color:#f7f3ea;font-size:12px;font-weight:800">3 items</span></div>
+          <div style="margin-top:14px;padding:14px 0;border-top:1px solid #e3e0d6;display:flex;justify-content:space-between;gap:12px"><div><p style="margin:0;font-weight:700;font-size:14px">Ivy Suya Pizza</p><p style="margin:3px 0 0;font-size:12px;color:#5d6a61">Large · 13" · Extra mozzarella</p></div><strong style="font-size:14px">₦13,500</strong></div>
+          <div style="padding:14px 0;border-top:1px solid #e3e0d6;display:flex;justify-content:space-between;gap:12px"><div><p style="margin:0;font-weight:700;font-size:14px">Ivy Classic Burger × 2</p><p style="margin:3px 0 0;font-size:12px;color:#5d6a61">Standard</p></div><strong style="font-size:14px">₦10,000</strong></div>
+          <div style="display:flex;justify-content:space-between;padding-top:14px;border-top:1px solid #e3e0d6;font-weight:800"><span style="color:#526057;font-size:14px">Subtotal</span><span style="font-size:22px;color:#103c2a">₦23,500</span></div>
+        </div>
+      </div>
+      <div>
+        <p style="margin:0 0 8px;font-family:'JetBrains Mono',monospace;font-size:11px;color:#526057">calculating subtotal</p>
+        <div style="border-radius:8px;border-top:4px solid #d5a543;background:#fff;box-shadow:0 20px 50px rgba(16,60,42,.12);padding:20px 22px">
+          <div style="display:flex;justify-content:space-between;align-items:center"><span style="font-family:Roboto,'Helvetica Neue',Arial,sans-serif;font-size:30px;color:#103c2a">Basket</span><span style="padding:5px 11px;border-radius:999px;background:#103c2a;color:#f7f3ea;font-size:12px;font-weight:800">4 items</span></div>
+          <div style="margin-top:14px;padding:14px 0;border-top:1px solid #e3e0d6;display:flex;justify-content:space-between;gap:12px"><div><p style="margin:0;font-weight:700;font-size:14px">Ivy Pepperoni</p><p style="margin:3px 0 0;font-size:12px;color:#5d6a61">Regular · 10"</p></div><strong style="font-size:14px">₦9,000</strong></div>
+          <div style="display:flex;justify-content:space-between;align-items:center;padding-top:14px;border-top:1px solid #e3e0d6;font-weight:800"><span style="display:flex;gap:8px;align-items:center;color:#526057;font-size:14px">Subtotal <span style="padding:3px 9px;border-radius:999px;background:#e9e4d6;font-size:11px">Updating…</span></span><span style="font-size:22px;color:#9aa59d">₦23,500</span></div>
+          <p style="margin:8px 0 0;font-size:12px;color:#31533e">Added 1 × Ivy Pepperoni (Regular) to your basket.</p>
+        </div>
+      </div>
+    </div>
+  </section>
+
+  <section style="padding:56px 0;border-bottom:1px solid #d9d5c9">
+    <h2 style="margin:0 0 24px;font-family:Roboto,'Helvetica Neue',Arial,sans-serif;font-weight:400;font-size:40px;color:#103c2a">07 · Account dialog states</h2>
+    <div style="display:grid;grid-template-columns:repeat(auto-fill,minmax(min(100%,270px),1fr));gap:20px">
+      <sc-for list="{{acct}}" as="a" hint-placeholder-count="4">
+        <div>
+          <p style="margin:0 0 8px;font-family:'JetBrains Mono',monospace;font-size:11px;color:#526057">{{a.label}}</p>
+          <div style="padding:24px;border-radius:8px;border-top:5px solid #d5a543;background:#fff;box-shadow:0 20px 50px rgba(16,60,42,.12)">
+            <p style="margin:0;font-family:Roboto,'Helvetica Neue',Arial,sans-serif;font-size:30px;color:#103c2a">Your account</p>
+            <sc-if value="{{a.tabs}}">
+              <div style="display:grid;grid-template-columns:1fr 1fr;margin-top:14px;border-bottom:1px solid #d6d9d2;font-size:13px;font-weight:800;text-align:center">
+                <span style="padding:10px 0;color:{{a.c1}};border-bottom:3px solid {{a.b1}}">Sign in</span>
+                <span style="padding:10px 0;color:{{a.c2}};border-bottom:3px solid {{a.b2}}">Create account</span>
+              </div>
+              <sc-if value="{{a.name}}"><div style="margin-top:12px;font-size:12px;font-weight:700;color:#314238">Full name<span style="display:block;height:42px;margin-top:5px;border:1px solid #c7cec8;border-radius:6px"></span></div></sc-if>
+              <div style="margin-top:12px;font-size:12px;font-weight:700;color:#314238">Email address<span style="display:block;height:42px;margin-top:5px;border:1px solid {{a.inputBorder}};border-radius:6px"></span></div>
+              <div style="margin-top:12px;font-size:12px;font-weight:700;color:#314238">Password<span style="display:block;height:42px;margin-top:5px;border:1px solid {{a.inputBorder}};border-radius:6px"></span></div>
+              <span style="display:grid;place-items:center;min-height:46px;margin-top:16px;border-radius:999px;background:#d5a543;color:#122019;font-size:14px;font-weight:800">{{a.cta}}</span>
+            </sc-if>
+            <sc-if value="{{a.profile}}">
+              <div style="display:flex;gap:12px;align-items:center;margin-top:16px;padding:14px;border-radius:8px;border:1px solid #e3e0d6">
+                <span style="display:grid;place-items:center;width:44px;height:44px;border-radius:999px;background:#103c2a;color:#d5a543;font-family:Roboto,'Helvetica Neue',Arial,sans-serif;font-size:22px">A</span>
+                <div><p style="margin:0;font-family:Roboto,'Helvetica Neue',Arial,sans-serif;font-size:22px;color:#103c2a">Amaka Obi</p><p style="margin:2px 0 0;font-size:12px;color:#526057">amaka@example.com</p></div>
+              </div>
+              <span style="display:grid;place-items:center;min-height:46px;margin-top:14px;border-radius:999px;border:1px solid #103c2a;color:#103c2a;font-size:14px;font-weight:800">Sign out</span>
+            </sc-if>
+            <sc-if value="{{a.msg}}"><p style="margin:14px 0 0;padding:10px 12px;border-radius:6px;background:{{a.msgBg}};color:{{a.msgColor}};font-size:13px;line-height:1.45">{{a.msg}}</p></sc-if>
+          </div>
+        </div>
+      </sc-for>
+    </div>
+  </section>
+
+  <section style="padding:56px 0">
+    <h2 style="margin:0 0 10px;font-family:Roboto,'Helvetica Neue',Arial,sans-serif;font-weight:400;font-size:40px;color:#103c2a">08 · Mobile (375–390px), live</h2>
+    <p style="margin:0 0 28px;max-width:640px;font-size:15px;line-height:1.6;color:#526057">The real page running at phone width. Scroll inside the frame: nav collapses, experience stacks, the basket becomes a floating bar that opens a bottom sheet.</p>
+    <div style="display:flex;flex-wrap:wrap;gap:40px;align-items:flex-start">
+      <div style="width:390px;max-width:100%;height:844px;border-radius:44px;padding:12px;background:#071b12;box-shadow:0 30px 80px rgba(7,27,18,.3)">
+        <iframe src="Ivy Pizza Motion Site.dc.html" title="Mobile preview of The Ivy Pizza" style="display:block;width:100%;height:100%;border:0;border-radius:34px;background:#071b12"></iframe>
+      </div>
+      <div style="flex:1 1 300px;display:grid;gap:18px;font-size:14px;line-height:1.6;color:#314238">
+        <p style="margin:0"><strong>Nav:</strong> logo, Menu, Account. Solidifies with blur after 30px of scroll.</p>
+        <p style="margin:0"><strong>Basket bar:</strong> appears after 70% of the hero. Empty: "Start your order → Menu". Filled: count + subtotal → opens sheet. Fly-to-basket targets the bar.</p>
+        <p style="margin:0"><strong>Sheet:</strong> 88vh max, drag handle, close button, Esc and scrim to dismiss; body scroll locks while open.</p>
+        <p style="margin:0"><strong>Experience:</strong> photo top, copy below, same pinned scrub.</p>
+        <p style="margin:0"><strong>Data:</strong> hero ≤ 180 KB AVIF/WebP at 1280w with 640w srcset; other photos ≤ 120 KB, lazy-loaded. Fonts ≈ 60 KB total.</p>
+      </div>
+    </div>
+  </section>
+</div>
+</x-dc>
+<script type="text/x-dc" data-dc-script>
+class Component extends DCLogic {
+  renderVals() {
+    const serif = "Roboto,'Helvetica Neue',Arial,sans-serif", sans = ''Nunito Sans',sans-serif';
+    return {
+      colors: [
+        { name: 'Ivy green', token: '--green', hex: '#103c2a', use: 'Primary brand, headings on cream, strip' },
+        { name: 'Ivy deep', token: '--green-900', hex: '#071b12', use: 'Hero, footer, floating bar' },
+        { name: 'Ivy menu', token: '--green-800', hex: '#102d20', use: 'Menu section ground' },
+        { name: 'Card', token: '--green-700', hex: '#173728', use: 'Menu card surface' },
+        { name: 'Gold', token: '--gold', hex: '#d5a543', use: 'Fills, chips, indicator, text on green' },
+        { name: 'Gold ink', token: '--gold-ink', hex: '#7d5c1c', use: 'Gold text on cream (AA)' },
+        { name: 'Gold soft', token: '--gold-300', hex: '#e3bf70', use: 'Prices, extras label on green' },
+        { name: 'Cream', token: '--cream', hex: '#f7f3ea', use: 'Page ground, basket, dialog' },
+        { name: 'Ink', token: '--ink', hex: '#122019', use: 'Body text, text on gold' },
+        { name: 'Muted', token: '--muted', hex: '#526057', use: 'Secondary text on cream' },
+        { name: 'Sage', token: '--sage', hex: '#c3d1c7', use: 'Secondary text on green' },
+        { name: 'Error', token: '--error', hex: '#8f2a22', use: 'Error text on #f6e3df' }
+      ],
+      type: [
+        { name: 'Display', spec: 'Serif 58–156 / .92', family: serif, size: 'clamp(44px,7vw,96px)', weight: 400, lh: 0.92, ls: '-.01em', tt: 'none', sample: "Abuja's new pizza ritual." },
+        { name: 'H2', spec: 'Serif 40–84 / .95', family: serif, size: 'clamp(36px,4.5vw,60px)', weight: 400, lh: 0.98, ls: '0', tt: 'none', sample: 'Made to order.' },
+        { name: 'H3 · card', spec: 'Serif 30 / 1.05', family: serif, size: '30px', weight: 400, lh: 1.05, ls: '0', tt: 'none', sample: 'Ivy Signature Chicken' },
+        { name: 'Lead', spec: 'Sans 17–19 / 1.6', family: sans, size: '18px', weight: 400, lh: 1.6, ls: '0', tt: 'none', sample: 'Premium fast food with unmistakable Ivy character.' },
+        { name: 'Body', spec: 'Sans 14–15 / 1.55', family: sans, size: '15px', weight: 400, lh: 1.55, ls: '0', tt: 'none', sample: 'Seasoned minced beef, Ivy signature sauce, mozzarella.' },
+        { name: 'UI / button', spec: 'Sans 14–15 · 800', family: sans, size: '15px', weight: 800, lh: 1.2, ls: '0', tt: 'none', sample: 'Add · ₦9,500' },
+        { name: 'Eyebrow', spec: 'Sans 11–12 · 800 · .24em', family: sans, size: '12px', weight: 800, lh: 1.2, ls: '.24em', tt: 'uppercase', sample: 'Pizza • Burgers • Fast delivery' }
+      ],
+      space: [4, 8, 12, 16, 24, 32, 48, 72, 128].map((p, i) => ({ token: '--s-' + (i + 1), px: p + 'px' })),
+      eases: [
+        { name: 'out-expo', val: 'cubic-bezier(.16,1,.3,1)' },
+        { name: 'in-out', val: 'cubic-bezier(.65,0,.35,1)' },
+        { name: 'sheet', val: 'cubic-bezier(.32,.72,0,1)' },
+        { name: 'press', val: 'cubic-bezier(.2,.7,.2,1)' }
+      ],
+      motion: [
+        { el: 'Hero photo', trigger: 'Load', anim: 'Scale 1.16 → 1.04', dur: '2600ms · out-expo', rm: 'Static at 1.0' },
+        { el: 'Hero headline', trigger: 'Load', anim: 'Lines rise from masked overflow, 130ms stagger', dur: '1100ms · out-expo, +250ms', rm: 'Visible immediately' },
+        { el: 'Hero eyebrow, copy, CTAs', trigger: 'Load', anim: 'Fade + 18px rise, 110ms stagger', dur: '900ms · out-expo, +650ms', rm: 'Visible immediately' },
+        { el: 'Hero parallax', trigger: 'Scroll 0 → hero height', anim: 'Photo y × 0.35; copy y × 0.12 and fades to 0 at 75%', dur: 'Scroll-linked (rAF)', rm: 'Off' },
+        { el: 'Nav', trigger: 'scrollY > 30', anim: 'Transparent → ivy 88% + 12px blur', dur: '400ms · ease', rm: 'Same (no movement)' },
+        { el: 'Value strip', trigger: 'Always', anim: 'Marquee translateX 0 → −50%', dur: '32s linear, infinite', rm: 'Static, wraps, single set' },
+        { el: 'Experience', trigger: 'Pinned, 250vh scrub', anim: 'Photo B clip-path reveal from bottom at 38–62%; copy beats crossfade ±40px; photo A scale 1.08 → 1; progress bar', dur: 'Scroll-linked, in-out cubic', rm: 'Unpinned: heading, copy and both photos in a grid' },
+        { el: 'Section reveals', trigger: 'IntersectionObserver, −12% bottom', anim: 'Fade + 36px rise, once', dur: '950ms · out-expo', rm: 'Visible' },
+        { el: 'Menu cards (first view)', trigger: 'Grid enters viewport', anim: 'Fade + 40px rise, 70ms stagger', dur: '850ms · out-expo', rm: 'Visible' },
+        { el: 'Category filter', trigger: 'Click', anim: 'Gold indicator slides to tab; cards FLIP to new slots; new cards fade + scale .96 → 1', dur: '500–600ms · in-out', rm: 'Instant swap' },
+        { el: 'Size chip', trigger: 'Press / select', anim: 'Scale .95 on press; fill + border colour crossfade', dur: '150ms / 250ms', rm: 'Colour only' },
+        { el: 'Extras disclosure', trigger: 'Toggle', anim: 'grid-template-rows 0fr → 1fr; + rotates 45°', dur: '400ms · in-out', rm: 'Instant' },
+        { el: 'Add to basket', trigger: 'Click', anim: 'Gold dot flies on an arc to basket count / floating bar, target bumps 1 → 1.25 → 1; card border glows; label → "Added ✓"', dur: '720ms + 480ms bump; 1.6s confirm', rm: 'No flight; label and status text confirm' },
+        { el: 'Subtotal', trigger: 'Basket change', anim: '"Updating…" chip (server calc), then number counts up', dur: '380ms + 600ms · out-cubic', rm: 'Instant value' },
+        { el: 'Basket line', trigger: 'Add / remove', anim: 'In: fade + 18px from right. Out: fade + 24px left', dur: '500ms / 260ms', rm: 'Instant' },
+        { el: 'Floating basket bar', trigger: 'Past 70% of hero, not in menu (desktop)', anim: 'Slide up from 140% + fade', dur: '550ms · sheet', rm: 'Fade only' },
+        { el: 'Mobile basket sheet', trigger: 'Tap bar', anim: 'translateY 105% → 0; scrim fades', dur: '550ms · sheet', rm: 'Instant' },
+        { el: 'Account dialog', trigger: 'Open', anim: 'Backdrop fade; panel 24px rise + scale .97 → 1; tab underline slides; Full name field expands', dur: '300ms / 500ms · sheet', rm: 'Fade only' }
+      ],
+      acct: [
+        { label: 'sign in', tabs: true, name: false, profile: false, c1: '#103c2a', b1: '#d5a543', c2: '#68736b', b2: 'transparent', inputBorder: '#c7cec8', cta: 'Sign in', msg: '' },
+        { label: 'create account', tabs: true, name: true, profile: false, c1: '#68736b', b1: 'transparent', c2: '#103c2a', b2: '#d5a543', inputBorder: '#c7cec8', cta: 'Create account', msg: '' },
+        { label: 'error', tabs: true, name: false, profile: false, c1: '#103c2a', b1: '#d5a543', c2: '#68736b', b2: 'transparent', inputBorder: '#c46a5f', cta: 'Sign in', msg: 'Enter a valid email address and a password of at least 8 characters.', msgBg: '#f6e3df', msgColor: '#8f2a22' },
+        { label: 'signed in', tabs: false, name: false, profile: true, msg: 'You are signed in.', msgBg: '#e3eee4', msgColor: '#285a37' }
+      ]
+    };
+  }
+}
+</script>
+</body>
+</html>
