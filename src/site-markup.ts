@@ -180,7 +180,12 @@ export const publicMarkup = `
         </div></div>
         <label class="ivy-field">Email address<input name="email" type="email" autocomplete="email" required maxlength="254" /></label>
         <label class="ivy-field">Password<input name="password" type="password" autocomplete="current-password" required minlength="8" maxlength="128" /></label>
+          <button class="auth-inline-link" id="forgot-password" type="button">Forgot password?</button>
         <button class="ivy-submit" id="auth-submit" type="submit">Sign in</button>
+      </form>
+      <form id="password-reset-form" hidden>
+        <label class="ivy-field">New password<input name="newPassword" type="password" autocomplete="new-password" required minlength="8" maxlength="128" /></label>
+        <button class="ivy-submit" type="submit">Save new password</button>
       </form>
       <div id="profile-card" hidden>
         <div class="profile">
@@ -191,6 +196,20 @@ export const publicMarkup = `
             <p class="profile-roles" id="profile-roles"></p>
           </div>
         </div>
+        <section class="customer-dashboard" aria-labelledby="dashboard-heading">
+          <div class="dashboard-summary">
+            <div><strong id="dashboard-order-count">—</strong><span>Orders placed</span></div>
+            <div><strong id="dashboard-active-count">—</strong><span>In progress</span></div>
+          </div>
+          <div class="dashboard-block">
+            <h3 id="dashboard-heading">Your orders</h3>
+            <div class="dashboard-orders" id="dashboard-orders" aria-live="polite"><p>Loading your order history…</p></div>
+          </div>
+          <div class="dashboard-block">
+            <h3>Popular picks</h3>
+            <div class="dashboard-picks" id="dashboard-picks"></div>
+          </div>
+        </section>
         <button class="ivy-submit outline" id="sign-out" type="button">Sign out</button>
       </div>
       <p class="ivy-message" id="auth-message" role="status" aria-live="polite"></p>

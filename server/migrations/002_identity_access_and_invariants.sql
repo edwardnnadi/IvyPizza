@@ -1,5 +1,6 @@
--- Link application profiles to Supabase Auth. Privileged staff roles are never
--- taken from user-editable metadata; they are granted separately by an admin.
+-- Preserve the original Supabase Auth profile link for accounts created before
+-- Better Auth was adopted. New account credentials are managed by Better Auth.
+-- Privileged roles are never taken from user-editable metadata.
 ALTER TABLE users
   ALTER COLUMN email DROP NOT NULL,
   ADD COLUMN IF NOT EXISTS auth_user_id UUID UNIQUE REFERENCES auth.users(id) ON DELETE CASCADE,
@@ -166,9 +167,9 @@ CREATE TRIGGER order_status_events_append_only
 BEFORE UPDATE OR DELETE ON order_status_events
 FOR EACH ROW EXECUTE FUNCTION public.prevent_order_event_mutation();
 
--- The Express API is the only application data access path. It verifies Supabase
--- JWTs and applies per-role and per-order rules. No client role can query these
--- tables directly through Supabase's Data API.
+-- The Express API is the application data access path. It verifies authenticated
+-- sessions and applies per-role and per-order rules. No client role can query
+-- these tables directly through Supabase's Data API.
 DO $$
 DECLARE
   table_name TEXT;

@@ -1,4 +1,4 @@
-import type { Session, SupabaseClient } from "@supabase/supabase-js";
+import type { IvyAuth, IvySession } from "./auth.js";
 import { apiUrl } from "./api.js";
 import { EASE_OUT_EXPO, flipCards, flyToBasket, isNarrow, isPillVisible, prefersReducedMotion, revealCardsOnEnter } from "./motion.js";
 
@@ -108,7 +108,7 @@ function lineKey(line: Pick<BasketLine, "menuItemId" | "optionIds">): string {
   return `${line.menuItemId}|${[...line.optionIds].sort().join("+")}`;
 }
 
-export function initializePublicMenu(client: SupabaseClient | null, requireSignIn: () => void): void {
+export function initializePublicMenu(client: IvyAuth | null, requireSignIn: () => void): void {
   let menuItems: MenuItem[] = [];
   let menuState: "loading" | "live" | "error" = "loading";
   let basket: BasketLine[] = readBasket();
@@ -745,12 +745,12 @@ export function initializePublicMenu(client: SupabaseClient | null, requireSignI
     if (field instanceof HTMLInputElement || field instanceof HTMLTextAreaElement) field.value = value;
   }
 
-  async function loadSavedAddresses(session: Session): Promise<void> {
+  async function loadSavedAddresses(session: IvySession): Promise<void> {
     savedAddresses = [];
     savedAddressSelect.replaceChildren(new Option("Enter a new delivery address", ""));
     savedAddressField.hidden = true;
     try {
-      const response = await fetch(apiUrl("/api/customer/addresses"), { headers: { Authorization: `Bearer ${session.access_token}` } });
+      const response = await fetch(apiUrl("/api/customer/addresses"), { credentials: "include" });
       if (!response.ok) return;
       const result = await response.json() as { addresses?: SavedAddress[] };
       savedAddresses = result.addresses ?? [];
@@ -849,7 +849,8 @@ export function initializePublicMenu(client: SupabaseClient | null, requireSignI
       const formData = new FormData(checkoutForm);
       const response = await fetch(apiUrl("/api/orders"), {
         method: "POST",
-        headers: { Authorization: `Bearer ${data.session.access_token}`, "Content-Type": "application/json" },
+        headers: { "Content-Type": "application/json" },
+        credentials: "include",
         body: JSON.stringify({
           idempotencyKey,
           items: basket,

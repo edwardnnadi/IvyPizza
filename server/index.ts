@@ -1,5 +1,7 @@
 import express from "express";
+import { toNodeHandler } from "better-auth/node";
 import { database, runMigrations } from "./database.js";
+import { auth, runBetterAuthMigrations, takeTestEmail } from "./better-auth.js";
 import { requireAuth } from "./auth.js";
 import kitchen from "./routes/kitchen.js";
 import hr from "./routes/hr.js";
@@ -23,7 +25,8 @@ app.use((request, response, next) => {
   if (origin && allowedOrigins.has(origin.replace(/\/+$/, ""))) {
     response.setHeader("Access-Control-Allow-Origin", origin);
     response.setHeader("Access-Control-Allow-Methods", "GET, POST, PATCH, OPTIONS");
-    response.setHeader("Access-Control-Allow-Headers", "Authorization, Content-Type");
+    response.setHeader("Access-Control-Allow-Headers", "Content-Type");
+    response.setHeader("Access-Control-Allow-Credentials", "true");
     response.vary("Origin");
   }
   if (request.method === "OPTIONS") {
@@ -40,6 +43,12 @@ if (appBasePath) {
     next();
   });
 }
+app.all("/api/auth/*splat", toNodeHandler(auth));
+
+if (process.env.NODE_ENV === "test") {
+  app.get("/__test/emails", (_request, response) => response.json({ email: takeTestEmail() ?? null }));
+}
+
 app.use(express.json({ limit: "32kb" }));
 
 app.get("/api/health", async (_request, response) => {
@@ -77,6 +86,7 @@ app.use((_error: unknown, _request: express.Request, response: express.Response,
 });
 
 await runMigrations();
+await runBetterAuthMigrations();
 app.listen(port, "0.0.0.0", () => console.log(`Ivy Pizza API listening on port ${port}`));
 
 for (const signal of ["SIGINT", "SIGTERM"] as const) {

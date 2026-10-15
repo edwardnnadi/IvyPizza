@@ -1,4 +1,4 @@
-import { createClient, type Session, type SupabaseClient } from "@supabase/supabase-js";
+import { ivyAuth, type IvyAuth, type IvySession } from "./auth.js";
 import { apiUrl } from "./api.js";
 import "./style.css";
 import { initializePublicMenu } from "./menu.js";
@@ -13,14 +13,25 @@ interface AccountProfile {
   roles: string[];
 }
 
+interface CustomerDashboard {
+  orderCount: number;
+  activeOrderCount: number;
+  orders: Array<{
+    orderNumber: string;
+    fulfillmentStatus: string;
+    paymentStatus: string;
+    totalMinor: number;
+    currency: string;
+    createdAt: string;
+    items: Array<{ name: string; quantity: number }>;
+  }>;
+  recommendations: Array<{ id: string; name: string; category: string; priceMinor: number; currency: string }>;
+}
+
 const app = document.querySelector<HTMLDivElement>("#app");
 if (!app) throw new Error("Application root was not found.");
 
-const supabaseUrl = import.meta.env.VITE_SUPABASE_URL;
-const supabasePublishableKey = import.meta.env.VITE_SUPABASE_PUBLISHABLE_KEY;
-const supabase = supabaseUrl && supabasePublishableKey
-  ? createClient(supabaseUrl, supabasePublishableKey)
-  : null;
+const clientAuth = ivyAuth;
 
 const kitchenMarkup = `
   <div class="kitchen-app">
@@ -130,13 +141,13 @@ const isHrScreen = window.location.pathname.replace(/\/+$/, "") === "/hr";
 app.innerHTML = isKitchenScreen ? kitchenMarkup : isHrScreen ? hrMarkup : publicMarkup;
 
 if (isKitchenScreen) {
-  initializeKitchenScreen(supabase);
+  initializeKitchenScreen(clientAuth);
 } else if (isHrScreen) {
-  initializeHrScreen(supabase);
+  initializeHrScreen(clientAuth);
 } else {
 
 initializeMotion();
-initializePublicMenu(supabase, showAccount);
+initializePublicMenu(clientAuth, showAccount);
 
 const dialog = document.querySelector<HTMLDialogElement>("#account-dialog")!;
 const authForm = document.querySelector<HTMLFormElement>("#auth-form")!;
@@ -167,6 +178,7 @@ function setAuthMode(mode: "signin" | "signup"): void {
     ? "Create an Ivy account to save your details for faster ordering."
     : "Sign in to your Ivy account or create one to get started.";
   nameField.querySelector("input")?.toggleAttribute("required", mode === "signup");
+  document.querySelector<HTMLButtonElement>("#forgot-password")!.hidden = mode === "signup";
   authForm.querySelector<HTMLInputElement>('[name="password"]')?.setAttribute(
     "autocomplete",
     mode === "signup" ? "new-password" : "current-password",
@@ -202,9 +214,9 @@ function showSignedOut(): void {
     : "Sign in to your Ivy account or create one to get started.";
 }
 
-async function loadProfile(session: Session): Promise<AccountProfile> {
+async function loadProfile(session: IvySession): Promise<AccountProfile> {
   const response = await fetch(apiUrl("/api/me"), {
-    headers: { Authorization: `Bearer ${session.access_token}` },
+    credentials: "include",
   });
   if (!response.ok) {
     if (response.status === 403) throw new Error("Your account profile is still being prepared. Please try again shortly.");
@@ -214,7 +226,7 @@ async function loadProfile(session: Session): Promise<AccountProfile> {
   return response.json() as Promise<AccountProfile>;
 }
 
-async function showSignedIn(session: Session): Promise<void> {
+async function showSignedIn(session: IvySession): Promise<void> {
   const generation = ++profileLoadGeneration;
   accountTabs.hidden = true;
   authForm.hidden = true;
@@ -229,10 +241,67 @@ async function showSignedIn(session: Session): Promise<void> {
     document.querySelector<HTMLParagraphElement>("#profile-roles")!.textContent = profile.roles.join(" · ") || "Customer";
     document.querySelector<HTMLSpanElement>("#profile-initial")!.textContent = profile.displayName.charAt(0).toUpperCase();
     setTriggerLabel(profile.displayName);
+    await loadCustomerDashboard();
+    if (generation !== profileLoadGeneration) return;
     setMessage("You’re signed in.", "ok");
   } catch (error) {
     if (generation !== profileLoadGeneration) return;
     setMessage(error instanceof Error ? error.message : "We could not load your account.", "error");
+  }
+}
+
+async function loadCustomerDashboard(): Promise<void> {
+  const response = await fetch(apiUrl("/api/customer/dashboard"), { credentials: "include" });
+  if (!response.ok) throw new Error("We could not load your order history. Please try again.");
+  const dashboard = await response.json() as CustomerDashboard;
+  document.querySelector<HTMLElement>("#dashboard-order-count")!.textContent = String(dashboard.orderCount);
+  document.querySelector<HTMLElement>("#dashboard-active-count")!.textContent = String(dashboard.activeOrderCount);
+  const orderList = document.querySelector<HTMLDivElement>("#dashboard-orders")!;
+  orderList.replaceChildren();
+  if (!dashboard.orders.length) {
+    const empty = document.createElement("p");
+    empty.textContent = "Your first order will appear here. Browse the menu to get started.";
+    orderList.append(empty);
+  }
+  for (const order of dashboard.orders) {
+    const card = document.createElement("article");
+    card.className = "dashboard-order";
+    const heading = document.createElement("div");
+    heading.className = "dashboard-order-heading";
+    const number = document.createElement("strong");
+    number.textContent = order.orderNumber;
+    const status = document.createElement("span");
+    status.textContent = order.fulfillmentStatus.replaceAll("_", " ");
+    heading.append(number, status);
+    const details = document.createElement("p");
+    details.textContent = `${order.items.map((item) => `${item.quantity}× ${item.name}`).join(", ")} · ${new Intl.NumberFormat("en-NG", { style: "currency", currency: order.currency, maximumFractionDigits: 0 }).format(order.totalMinor / 100)}`;
+    const date = document.createElement("small");
+    date.textContent = new Date(order.createdAt).toLocaleDateString("en-NG", { day: "numeric", month: "short", year: "numeric" });
+    card.append(heading, details, date);
+    orderList.append(card);
+  }
+
+  const picks = document.querySelector<HTMLDivElement>("#dashboard-picks")!;
+  picks.replaceChildren();
+  for (const item of dashboard.recommendations) {
+    const row = document.createElement("div");
+    row.className = "dashboard-pick";
+    const name = document.createElement("div");
+    const title = document.createElement("strong");
+    title.textContent = item.name;
+    const price = document.createElement("small");
+    price.textContent = new Intl.NumberFormat("en-NG", { style: "currency", currency: item.currency, maximumFractionDigits: 0 }).format(item.priceMinor / 100);
+    name.append(title, price);
+    const browse = document.createElement("button");
+    browse.type = "button";
+    browse.textContent = "See menu";
+    browse.addEventListener("click", () => {
+      dialog.close();
+      document.querySelector<HTMLButtonElement>('#menu-filters [data-category="All"]')?.click();
+      document.querySelector<HTMLElement>(`[data-card-id="${CSS.escape(item.id)}"]`)?.scrollIntoView({ behavior: "smooth", block: "center" });
+    });
+    row.append(name, browse);
+    picks.append(row);
   }
 }
 
@@ -244,8 +313,19 @@ dialog.addEventListener("click", (event) => {
 document.querySelectorAll<HTMLButtonElement>("#account-tabs [data-mode]").forEach((button) => {
   button.addEventListener("click", () => setAuthMode(button.dataset.mode === "signup" ? "signup" : "signin"));
 });
+document.querySelector<HTMLButtonElement>("#forgot-password")!.addEventListener("click", async () => {
+  const email = authForm.querySelector<HTMLInputElement>('[name="email"]')!.value.trim();
+  if (!email) {
+    setMessage("Enter your email address first, and we’ll send a reset link if an account exists.");
+    authForm.querySelector<HTMLInputElement>('[name="email"]')!.focus();
+    return;
+  }
+  setMessage("Sending a password reset link…");
+  const { error } = await ivyAuth.auth.resetPasswordForEmail(email, `${window.location.origin}/`);
+  setMessage(error ? "We could not send a reset link. Please try again later." : "If an account exists for this email, a password reset link is on its way.", error ? "error" : "ok");
+});
 
-if (!supabase) {
+if (!clientAuth) {
   configNote.hidden = false;
   authForm.querySelectorAll<HTMLInputElement | HTMLButtonElement>("input, button").forEach((element) => {
     element.disabled = true;
@@ -264,7 +344,7 @@ if (!supabase) {
     try {
       if (authMode === "signup") {
         const displayName = String(formData.get("display_name") ?? "").trim();
-        const { data, error } = await supabase.auth.signUp({
+        const { data, error } = await clientAuth.auth.signUp({
           email,
           password,
           options: {
@@ -279,19 +359,23 @@ if (!supabase) {
           await showSignedIn(data.session);
         }
       } else {
-        const { data, error } = await supabase.auth.signInWithPassword({ email, password });
+        const { data, error } = await clientAuth.auth.signInWithPassword({ email, password });
         if (error) throw error;
+        if (!data.session) throw new Error("Your email address must be confirmed before you can sign in.");
         await showSignedIn(data.session);
       }
     } catch (error) {
-      setMessage(error instanceof Error ? error.message : "We could not complete that request.", "error");
+      const reason = error instanceof Error ? error.message : "We could not complete that request.";
+      setMessage(/verif|confirm/i.test(reason)
+        ? "Please confirm your email first. We sent another confirmation link if the account is still unverified."
+        : reason, "error");
     } finally {
       submit.disabled = false;
     }
   });
 
   document.querySelector<HTMLButtonElement>("#sign-out")!.addEventListener("click", async () => {
-    const { error } = await supabase.auth.signOut();
+    const { error } = await clientAuth.auth.signOut();
     if (error) {
       setMessage("We could not sign you out. Please try again.", "error");
       return;
@@ -301,7 +385,7 @@ if (!supabase) {
     setMessage("You’re signed out.", "ok");
   });
 
-  void supabase.auth.getSession().then(({ data, error }) => {
+  void clientAuth.auth.getSession().then(({ data, error }) => {
     if (error) {
       showSignedOut();
       setMessage("We could not restore your session. Please sign in again.", "error");
@@ -310,9 +394,39 @@ if (!supabase) {
     if (data.session) void showSignedIn(data.session);
   });
 
-  supabase.auth.onAuthStateChange((_event, session) => {
+  clientAuth.auth.onAuthStateChange((_event, session) => {
     if (session) void showSignedIn(session);
     else showSignedOut();
+  });
+}
+
+const resetToken = new URLSearchParams(window.location.search).get("resetToken");
+if (resetToken) {
+  const resetForm = document.querySelector<HTMLFormElement>("#password-reset-form")!;
+  accountTabs.hidden = true;
+  authForm.hidden = true;
+  profileCard.hidden = true;
+  resetForm.hidden = false;
+  accountIntro.textContent = "Choose a new password for your Ivy account.";
+  dialog.showModal();
+  resetForm.addEventListener("submit", async (event) => {
+    event.preventDefault();
+    const submit = resetForm.querySelector<HTMLButtonElement>("button[type=submit]")!;
+    submit.disabled = true;
+    const newPassword = String(new FormData(resetForm).get("newPassword") ?? "");
+    const { error } = await ivyAuth.auth.resetPassword(resetToken, newPassword);
+    if (error) {
+      setMessage("This password reset link is invalid or expired. Request a new one from sign in.", "error");
+      submit.disabled = false;
+      return;
+    }
+    window.history.replaceState({}, "", window.location.pathname);
+    resetForm.hidden = true;
+    authForm.hidden = false;
+    accountTabs.hidden = false;
+    setAuthMode("signin");
+    setMessage("Your password has been updated. Sign in with your new password.", "ok");
+    submit.disabled = false;
   });
 }
 
@@ -337,7 +451,7 @@ interface KitchenProfile {
   roles: string[];
 }
 
-function initializeKitchenScreen(client: SupabaseClient | null): void {
+function initializeKitchenScreen(client: IvyAuth | null): void {
   const loginPanel = document.querySelector<HTMLElement>("#kitchen-login")!;
   const loginForm = document.querySelector<HTMLFormElement>("#kitchen-login-form")!;
   const loginMessage = document.querySelector<HTMLParagraphElement>("#kitchen-login-message")!;
@@ -349,7 +463,7 @@ function initializeKitchenScreen(client: SupabaseClient | null): void {
   const refreshButton = document.querySelector<HTMLButtonElement>("#kitchen-refresh")!;
   const signOutButton = document.querySelector<HTMLButtonElement>("#kitchen-sign-out")!;
   const staffName = document.querySelector<HTMLSpanElement>("#kitchen-staff-name")!;
-  let currentSession: Session | null = null;
+  let currentSession: IvySession | null = null;
   let refreshTimer: number | undefined;
   let loadGeneration = 0;
 
@@ -439,9 +553,9 @@ function initializeKitchenScreen(client: SupabaseClient | null): void {
   async function fetchWithSession(url: string, init: RequestInit = {}): Promise<Response> {
     if (!currentSession) throw new Error("Your session has ended. Please sign in again.");
     const headers = new Headers(init.headers);
-    headers.set("Authorization", `Bearer ${currentSession.access_token}`);
+
     if (init.body) headers.set("Content-Type", "application/json");
-    return fetch(apiUrl(url), { ...init, headers });
+    return fetch(apiUrl(url), { ...init, headers, credentials: "include" });
   }
 
   async function refreshQueue(quiet = false): Promise<void> {
@@ -488,7 +602,7 @@ function initializeKitchenScreen(client: SupabaseClient | null): void {
     }
   }
 
-  async function loadStaffScreen(session: Session): Promise<void> {
+  async function loadStaffScreen(session: IvySession): Promise<void> {
     const generation = ++loadGeneration;
     currentSession = session;
     loginMessage.textContent = "Checking staff access…";
@@ -547,6 +661,7 @@ function initializeKitchenScreen(client: SupabaseClient | null): void {
         password: String(formData.get("password") ?? ""),
       });
       if (error) throw error;
+      if (!data.session) throw new Error("Your email address must be confirmed before you can sign in.");
       await loadStaffScreen(data.session);
     } catch (error) {
       loginMessage.textContent = error instanceof Error ? error.message : "Could not sign in.";
@@ -601,7 +716,7 @@ interface HrStaffRecord {
   roles: string[];
 }
 
-function initializeHrScreen(client: SupabaseClient | null): void {
+function initializeHrScreen(client: IvyAuth | null): void {
   const loginPanel = document.querySelector<HTMLElement>("#hr-login")!;
   const loginForm = document.querySelector<HTMLFormElement>("#hr-login-form")!;
   const loginMessage = document.querySelector<HTMLParagraphElement>("#hr-login-message")!;
@@ -616,7 +731,7 @@ function initializeHrScreen(client: SupabaseClient | null): void {
   const directoryMessage = document.querySelector<HTMLParagraphElement>("#hr-directory-message")!;
   const directory = document.querySelector<HTMLDivElement>("#hr-directory")!;
   const hrRoleOption = document.querySelector<HTMLOptionElement>("#hr-role-option")!;
-  let currentSession: Session | null = null;
+  let currentSession: IvySession | null = null;
   let loadGeneration = 0;
 
   function showLogin(message = ""): void {
@@ -634,7 +749,7 @@ function initializeHrScreen(client: SupabaseClient | null): void {
   async function fetchWithSession(url: string, init: RequestInit = {}): Promise<Response> {
     if (!currentSession) throw new Error("Your session has ended. Please sign in again.");
     const headers = new Headers(init.headers);
-    headers.set("Authorization", `Bearer ${currentSession.access_token}`);
+
     if (init.body) headers.set("Content-Type", "application/json");
     return fetch(apiUrl(url), { ...init, headers });
   }
@@ -721,7 +836,7 @@ function initializeHrScreen(client: SupabaseClient | null): void {
     }
   }
 
-  async function loadHrScreen(session: Session): Promise<void> {
+  async function loadHrScreen(session: IvySession): Promise<void> {
     const generation = ++loadGeneration;
     currentSession = session;
     loginMessage.textContent = "Checking HR access…";
@@ -774,6 +889,7 @@ function initializeHrScreen(client: SupabaseClient | null): void {
         password: String(formData.get("password") ?? ""),
       });
       if (error) throw error;
+      if (!data.session) throw new Error("Your email address must be confirmed before you can sign in.");
       await loadHrScreen(data.session);
     } catch (error) {
       loginMessage.textContent = error instanceof Error ? error.message : "Could not sign in.";

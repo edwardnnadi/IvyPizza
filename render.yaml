@@ -15,8 +15,28 @@ services:
       - key: NODE_ENV
         value: production
       - key: CORS_ORIGINS
-        value: https://theivypizza.com
+        value: https://theivypizza.com,https://www.theivypizza.com
       - key: DATABASE_URL
         sync: false
-      - key: SUPABASE_URL
+      - key: BETTER_AUTH_URL
+        value: https://api.theivypizza.com
+      - key: BETTER_AUTH_SECRET
+        generateValue: true
+      - key: AUTH_FRONTEND_URL
+        value: https://theivypizza.com
+      - key: AUTH_COOKIE_DOMAIN
+        value: .theivypizza.com
+      - key: AUTH_TRUSTED_ORIGINS
+        value: https://theivypizza.com,https://www.theivypizza.com
+      - key: SMTP_HOST
         sync: false
+      - key: SMTP_PORT
+        value: "465"
+      - key: SMTP_SECURE
+        value: "true"
+      - key: SMTP_USER
+        sync: false
+      - key: SMTP_PASSWORD
+        sync: false
+      - key: SMTP_FROM
+        value: The Ivy Pizza <orders@theivypizza.com>
