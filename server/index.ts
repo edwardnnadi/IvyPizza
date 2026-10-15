@@ -9,8 +9,17 @@ import orders from "./routes/orders.js";
 
 const app = express();
 const port = Number(process.env.PORT ?? process.env.API_PORT ?? 3001);
+const appBasePath = process.env.APP_BASE_PATH?.replace(/\/+$/, "");
 
 app.disable("x-powered-by");
+if (appBasePath) {
+  app.use((request, _response, next) => {
+    if (request.url !== appBasePath && !request.url.startsWith(`${appBasePath}/`)) {
+      request.url = `${appBasePath}${request.url.startsWith("/") ? request.url : `/${request.url}`}`;
+    }
+    next();
+  });
+}
 app.use(express.json({ limit: "32kb" }));
 
 app.get("/api/health", async (_request, response) => {
