@@ -22,7 +22,7 @@ The API can run as a Render Node web service while the static frontend remains o
 
 - `DATABASE_URL` — the Supabase PostgreSQL session pooler connection string (port 5432).
 - `DATABASE_CA_CERT` — omit this variable to use the certificate bundled at `prod-ca-2021.crt`.
-- `SUPABASE_URL` — the Supabase project URL used to validate login tokens.
+- `SUPABASE_URL` — the Supabase project URL used to validate login tokens (the app normalizes a `/rest/v1` suffix if present).
 - `CORS_ORIGINS` — `https://theivypizza.com` (add any exact staff-screen origins if they differ).
 
 After the API deploys, set `VITE_API_BASE_URL` to its Render service URL (without a trailing slash), build the frontend, and deploy the updated `dist/` directory to WhoGoHost. The frontend bundle contains only the Supabase URL and publishable key; database credentials stay on the API host. Keep migrations in the repo and apply them through the API deployment workflow.

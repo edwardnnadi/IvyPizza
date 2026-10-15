@@ -21,7 +21,7 @@ declare global {
   }
 }
 
-const supabaseUrl = process.env.SUPABASE_URL?.replace(/\/$/, "");
+const supabaseUrl = process.env.SUPABASE_URL?.replace(/\/+$/, "").replace(/\/rest\/v1$/i, "");
 const jwks = supabaseUrl
   ? createRemoteJWKSet(new URL(`${supabaseUrl}/auth/v1/.well-known/jwks.json`))
   : null;
