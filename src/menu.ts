@@ -1,4 +1,5 @@
 import type { Session, SupabaseClient } from "@supabase/supabase-js";
+import { apiUrl } from "./api.js";
 import { EASE_OUT_EXPO, flipCards, flyToBasket, isNarrow, isPillVisible, prefersReducedMotion, revealCardsOnEnter } from "./motion.js";
 
 interface MenuItem {
@@ -611,7 +612,7 @@ export function initializePublicMenu(client: SupabaseClient | null, requireSignI
     if (basket.length === 0) return;
     setCalculating(true);
     try {
-      const response = await fetch("/api/menu/quote", {
+      const response = await fetch(apiUrl("/api/menu/quote"), {
         method: "POST",
         headers: { "Content-Type": "application/json" },
         body: JSON.stringify({ items: basket }),
@@ -704,7 +705,7 @@ export function initializePublicMenu(client: SupabaseClient | null, requireSignI
     menuState = "loading";
     renderMenu();
     try {
-      const response = await fetch("/api/menu");
+      const response = await fetch(apiUrl("/api/menu"));
       if (!response.ok) throw new Error("Menu is temporarily unavailable.");
       const result = await response.json() as { items?: MenuItem[] };
       menuItems = result.items ?? [];
@@ -749,7 +750,7 @@ export function initializePublicMenu(client: SupabaseClient | null, requireSignI
     savedAddressSelect.replaceChildren(new Option("Enter a new delivery address", ""));
     savedAddressField.hidden = true;
     try {
-      const response = await fetch("/api/customer/addresses", { headers: { Authorization: `Bearer ${session.access_token}` } });
+      const response = await fetch(apiUrl("/api/customer/addresses"), { headers: { Authorization: `Bearer ${session.access_token}` } });
       if (!response.ok) return;
       const result = await response.json() as { addresses?: SavedAddress[] };
       savedAddresses = result.addresses ?? [];
@@ -763,7 +764,7 @@ export function initializePublicMenu(client: SupabaseClient | null, requireSignI
   async function populateCheckoutSummary(): Promise<void> {
     setCheckoutMessage("Checking the latest prices and delivery estimate…");
     try {
-      const response = await fetch("/api/menu/quote", {
+      const response = await fetch(apiUrl("/api/menu/quote"), {
         method: "POST",
         headers: { "Content-Type": "application/json" },
         body: JSON.stringify({ items: basket }),
@@ -846,7 +847,7 @@ export function initializePublicMenu(client: SupabaseClient | null, requireSignI
         localStorage.setItem(checkoutKeyStorageKey, idempotencyKey);
       }
       const formData = new FormData(checkoutForm);
-      const response = await fetch("/api/orders", {
+      const response = await fetch(apiUrl("/api/orders"), {
         method: "POST",
         headers: { Authorization: `Bearer ${data.session.access_token}`, "Content-Type": "application/json" },
         body: JSON.stringify({

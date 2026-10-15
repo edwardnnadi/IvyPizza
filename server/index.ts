@@ -10,8 +10,28 @@ import orders from "./routes/orders.js";
 const app = express();
 const port = Number(process.env.PORT ?? process.env.API_PORT ?? 3001);
 const appBasePath = process.env.APP_BASE_PATH?.replace(/\/+$/, "");
+const allowedOrigins = new Set(
+  (process.env.CORS_ORIGINS ?? "")
+    .split(",")
+    .map((origin) => origin.trim().replace(/\/+$/, ""))
+    .filter(Boolean),
+);
 
 app.disable("x-powered-by");
+app.use((request, response, next) => {
+  const origin = request.header("origin");
+  if (origin && allowedOrigins.has(origin.replace(/\/+$/, ""))) {
+    response.setHeader("Access-Control-Allow-Origin", origin);
+    response.setHeader("Access-Control-Allow-Methods", "GET, POST, PATCH, OPTIONS");
+    response.setHeader("Access-Control-Allow-Headers", "Authorization, Content-Type");
+    response.vary("Origin");
+  }
+  if (request.method === "OPTIONS") {
+    response.sendStatus(origin && allowedOrigins.has(origin.replace(/\/+$/, "")) ? 204 : 403);
+    return;
+  }
+  next();
+});
 if (appBasePath) {
   app.use((request, _response, next) => {
     if (request.url !== appBasePath && !request.url.startsWith(`${appBasePath}/`)) {

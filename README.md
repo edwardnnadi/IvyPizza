@@ -16,6 +16,17 @@ npm run dev
 
 The Vite frontend runs at <http://127.0.0.1:5173> and proxies `/api` calls to the local API at <http://127.0.0.1:3001>. The API connects to Supabase Postgres using the private `DATABASE_URL` in `.env.local`. On startup, it applies unapplied SQL files from `server/migrations/` in numeric order and records them in `schema_migrations`.
 
+## Deploy the API to Render
+
+The API can run as a Render Node web service while the static frontend remains on WhoGoHost. `render.yaml` defines the API service, build/start commands, health check, and non-secret environment settings. Set these secrets in the Render service dashboard:
+
+- `DATABASE_URL` — the Supabase PostgreSQL session pooler connection string (port 5432).
+- `DATABASE_CA_CERT` — omit this variable to use the certificate bundled at `prod-ca-2021.crt`.
+- `SUPABASE_URL` — the Supabase project URL used to validate login tokens.
+- `CORS_ORIGINS` — `https://theivypizza.com` (add any exact staff-screen origins if they differ).
+
+After the API deploys, set `VITE_API_BASE_URL` to its Render service URL (without a trailing slash), build the frontend, and deploy the updated `dist/` directory to WhoGoHost. The frontend bundle contains only the Supabase URL and publishable key; database credentials stay on the API host. Keep migrations in the repo and apply them through the API deployment workflow.
+
 ## Phase 2: identity and access foundation
 
 - Supabase Auth users are linked to application profiles by a database trigger. New accounts receive only the `customer` role by default.

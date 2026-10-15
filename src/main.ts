@@ -1,4 +1,5 @@
 import { createClient, type Session, type SupabaseClient } from "@supabase/supabase-js";
+import { apiUrl } from "./api.js";
 import "./style.css";
 import { initializePublicMenu } from "./menu.js";
 import { publicMarkup } from "./site-markup.js";
@@ -202,7 +203,7 @@ function showSignedOut(): void {
 }
 
 async function loadProfile(session: Session): Promise<AccountProfile> {
-  const response = await fetch("/api/me", {
+  const response = await fetch(apiUrl("/api/me"), {
     headers: { Authorization: `Bearer ${session.access_token}` },
   });
   if (!response.ok) {
@@ -437,7 +438,7 @@ function initializeKitchenScreen(client: SupabaseClient | null): void {
     const headers = new Headers(init.headers);
     headers.set("Authorization", `Bearer ${currentSession.access_token}`);
     if (init.body) headers.set("Content-Type", "application/json");
-    return fetch(url, { ...init, headers });
+    return fetch(apiUrl(url), { ...init, headers });
   }
 
   async function refreshQueue(quiet = false): Promise<void> {
@@ -632,7 +633,7 @@ function initializeHrScreen(client: SupabaseClient | null): void {
     const headers = new Headers(init.headers);
     headers.set("Authorization", `Bearer ${currentSession.access_token}`);
     if (init.body) headers.set("Content-Type", "application/json");
-    return fetch(url, { ...init, headers });
+    return fetch(apiUrl(url), { ...init, headers });
   }
 
   function renderDirectory(staff: HrStaffRecord[]): void {
