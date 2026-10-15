@@ -25,6 +25,9 @@ const transporter = smtpHost && smtpUser && smtpPassword
       host: smtpHost,
       port: smtpPort,
       secure: process.env.SMTP_SECURE ? process.env.SMTP_SECURE === "true" : smtpPort === 465,
+      // For plaintext SMTP ports (such as 26), fail instead of sending
+      // credentials or mail if the server does not offer STARTTLS.
+      ...(process.env.SMTP_SECURE === "true" ? {} : { requireTLS: true }),
       auth: { user: smtpUser, pass: smtpPassword },
     })
   : null;
