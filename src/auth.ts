@@ -50,7 +50,11 @@ export class IvyAuth {
     },
     signInWithPassword: async ({ email, password }: { email: string; password: string }): Promise<AuthResult> => {
       try {
-        const result = await authRequest<{ user: { id: string; email: string; name?: string } }>("sign-in/email", { email, password });
+        const result = await authRequest<{ user: { id: string; email: string; name?: string } }>("sign-in/email", {
+          email,
+          password,
+          callbackURL: window.location.origin,
+        });
         const session = toSession(result.user);
         this.emit("SIGNED_IN", session);
         return { data: { session }, error: null };
