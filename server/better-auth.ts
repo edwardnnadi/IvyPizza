@@ -15,6 +15,7 @@ function escapeHtml(value: string): string {
 
 const testEmails: AuthEmail[] = [];
 const production = process.env.NODE_ENV === "production";
+const emailProvider = (process.env.EMAIL_PROVIDER ?? "smtp").trim().toLowerCase();
 const smtpPort = Number(process.env.SMTP_PORT ?? 465);
 const smtpHost = process.env.SMTP_HOST;
 const smtpUser = process.env.SMTP_USER;
@@ -32,12 +33,36 @@ const transporter = smtpHost && smtpUser && smtpPassword
     })
   : null;
 
+async function sendWithResend(email: AuthEmail): Promise<void> {
+  const apiKey = process.env.RESEND_API_KEY;
+  if (!apiKey) throw new Error("RESEND_API_KEY is required when EMAIL_PROVIDER=resend");
+
+  const response = await fetch("https://api.resend.com/emails", {
+    method: "POST",
+    headers: {
+      Authorization: `Bearer ${apiKey}`,
+      "Content-Type": "application/json",
+    },
+    body: JSON.stringify({ from: smtpFrom, ...email }),
+    signal: AbortSignal.timeout(15000),
+  });
+  if (!response.ok) {
+    const detail = await response.text();
+    throw new Error(`Resend email request failed (${response.status}): ${detail.slice(0, 1000)}`);
+  }
+}
+
 async function sendAuthEmail(email: AuthEmail): Promise<void> {
   if (process.env.NODE_ENV === "test") {
     testEmails.push(email);
     return;
   }
-  if (!transporter) throw new Error("Email delivery is not configured");
+  if (emailProvider === "resend") {
+    await sendWithResend(email);
+    return;
+  }
+  if (emailProvider !== "smtp") throw new Error(`Unsupported EMAIL_PROVIDER: ${emailProvider}`);
+  if (!transporter) throw new Error("Email delivery is not configured: configure SMTP_HOST, SMTP_USER, and SMTP_PASSWORD");
   await transporter.sendMail({ from: smtpFrom, ...email });
 }
 

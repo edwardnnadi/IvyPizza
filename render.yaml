@@ -28,6 +28,8 @@ services:
         value: .theivypizza.com
       - key: AUTH_TRUSTED_ORIGINS
         value: https://theivypizza.com,https://www.theivypizza.com
+      - key: EMAIL_PROVIDER
+        sync: false
       - key: SMTP_HOST
         sync: false
       - key: SMTP_PORT
@@ -40,3 +42,5 @@ services:
         sync: false
       - key: SMTP_FROM
         value: The Ivy Pizza <orders@theivypizza.com>
+      - key: RESEND_API_KEY
+        sync: false
