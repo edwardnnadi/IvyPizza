@@ -29,7 +29,7 @@ The Vite frontend runs at <http://127.0.0.1:5173> and proxies `/api` calls to th
 
 ## Deploy to WhoGoHost
 
-The API runs as a DirectAdmin Node.js app and connects to MariaDB on the same server through its local socket, so no database traffic leaves the server. Account confirmation and password reset emails go through the theivypizza.com mail server.
+The API runs as a DirectAdmin Node.js app and connects to MariaDB on the same server through its local socket, so no database traffic leaves the server. Emails go through the theivypizza.com mail server, each from the mailbox for its purpose: `customers@` for customer account emails, `staff@` for account emails to anyone with a staff role, and `orders@` and `solutions@` (configured with `SMTP_ORDERS_*` and `SMTP_SOLUTIONS_*`) for order and support emails once those are added. Each mailbox logs in with its own password, so the sender address always matches the account sending it. The server will not start in production until the customers and staff mailboxes are configured.
 
 | Step | Where | What to do |
 |---|---|---|
@@ -53,8 +53,8 @@ The API runs as a DirectAdmin Node.js app and connects to MariaDB on the same se
 | `AUTH_FRONTEND_URL` | `https://theivypizza.com` |
 | `EMAIL_PROVIDER` | `smtp` |
 | `SMTP_HOST`, `SMTP_PORT`, `SMTP_SECURE` | `mail.theivypizza.com`, `465`, `true` |
-| `SMTP_USER`, `SMTP_PASSWORD` | The `orders@theivypizza.com` mailbox login |
-| `SMTP_FROM` | `The Ivy Pizza <orders@theivypizza.com>` |
+| `SMTP_CUSTOMERS_USER`, `SMTP_CUSTOMERS_PASSWORD` | The `customers@theivypizza.com` mailbox login |
+| `SMTP_STAFF_USER`, `SMTP_STAFF_PASSWORD` | The `staff@theivypizza.com` mailbox login |
 
 Build the frontend with `VITE_API_BASE_URL=https://api.theivypizza.com npm run build` and upload `dist/` to `public_html`. The browser uses secure, cross-subdomain cookies; `CORS_ORIGINS` and `AUTH_TRUSTED_ORIGINS` must list the exact public website origins. `src/public/.htaccess` redirects old `/api` links on the main site to `api.theivypizza.com`.
 

@@ -1,70 +1,13 @@
 import { betterAuth } from "better-auth";
-import nodemailer from "nodemailer";
 import { pool } from "./database.js";
-
-interface AuthEmail {
-  to: string;
-  subject: string;
-  text: string;
-  html: string;
-}
+import { accountMailboxFor, checkEmailConfiguration, sendEmail } from "./email.js";
 
 function escapeHtml(value: string): string {
   return value.replace(/[&<>"']/g, (character) => ({ "&": "&amp;", "<": "&lt;", ">": "&gt;", "\"": "&quot;", "'": "&#39;" })[character]!);
 }
 
-const testEmails: AuthEmail[] = [];
 const production = process.env.NODE_ENV === "production";
-const emailProvider = (process.env.EMAIL_PROVIDER ?? "smtp").trim().toLowerCase();
-const smtpPort = Number(process.env.SMTP_PORT ?? 465);
-const smtpHost = process.env.SMTP_HOST;
-const smtpUser = process.env.SMTP_USER;
-const smtpPassword = process.env.SMTP_PASSWORD;
-const smtpFrom = process.env.SMTP_FROM ?? "The Ivy Pizza <orders@theivypizza.com>";
-const transporter = smtpHost && smtpUser && smtpPassword
-  ? nodemailer.createTransport({
-      host: smtpHost,
-      port: smtpPort,
-      secure: process.env.SMTP_SECURE ? process.env.SMTP_SECURE === "true" : smtpPort === 465,
-      // For plaintext SMTP ports (such as 26), fail instead of sending
-      // credentials or mail if the server does not offer STARTTLS.
-      ...(process.env.SMTP_SECURE === "true" ? {} : { requireTLS: true }),
-      auth: { user: smtpUser, pass: smtpPassword },
-    })
-  : null;
-
-async function sendWithResend(email: AuthEmail): Promise<void> {
-  const apiKey = process.env.RESEND_API_KEY;
-  if (!apiKey) throw new Error("RESEND_API_KEY is required when EMAIL_PROVIDER=resend");
-
-  const response = await fetch("https://api.resend.com/emails", {
-    method: "POST",
-    headers: {
-      Authorization: `Bearer ${apiKey}`,
-      "Content-Type": "application/json",
-    },
-    body: JSON.stringify({ from: smtpFrom, ...email }),
-    signal: AbortSignal.timeout(15000),
-  });
-  if (!response.ok) {
-    const detail = await response.text();
-    throw new Error(`Resend email request failed (${response.status}): ${detail.slice(0, 1000)}`);
-  }
-}
-
-async function sendAuthEmail(email: AuthEmail): Promise<void> {
-  if (process.env.NODE_ENV === "test") {
-    testEmails.push(email);
-    return;
-  }
-  if (emailProvider === "resend") {
-    await sendWithResend(email);
-    return;
-  }
-  if (emailProvider !== "smtp") throw new Error(`Unsupported EMAIL_PROVIDER: ${emailProvider}`);
-  if (!transporter) throw new Error("Email delivery is not configured: configure SMTP_HOST, SMTP_USER, and SMTP_PASSWORD");
-  await transporter.sendMail({ from: smtpFrom, ...email });
-}
+checkEmailConfiguration();
 
 const trustedOriginSetting = process.env.AUTH_TRUSTED_ORIGINS;
 if (production && !trustedOriginSetting) throw new Error("AUTH_TRUSTED_ORIGINS is required in production");
@@ -107,7 +50,7 @@ export const auth = betterAuth({
       const resetUrl = new URL("/", process.env.AUTH_FRONTEND_URL ?? "https://theivypizza.com");
       resetUrl.searchParams.set("resetToken", token);
       const link = resetUrl.toString();
-      await sendAuthEmail({
+      await sendEmail(await accountMailboxFor(user.id), {
         to: user.email,
         subject: "Reset your Ivy Pizza password",
         text: `Use this link to reset your password: ${link}\n\nIf you did not request this, you can ignore this email.`,
@@ -120,7 +63,7 @@ export const auth = betterAuth({
     sendOnSignIn: true,
     autoSignInAfterVerification: true,
     sendVerificationEmail: async ({ user, url }) => {
-      await sendAuthEmail({
+      await sendEmail(await accountMailboxFor(user.id), {
         to: user.email,
         subject: "Confirm your Ivy Pizza account",
         text: `Confirm your email address to finish creating your Ivy Pizza account: ${url}\n\nIf you did not create this account, you can ignore this email.`,
@@ -135,6 +78,3 @@ export async function runBetterAuthMigrations(): Promise<void> {
   await context.runMigrations();
 }
 
-export function takeTestEmail(): AuthEmail | undefined {
-  return testEmails.shift();
-}

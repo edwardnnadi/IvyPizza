@@ -86,6 +86,18 @@ test("HR can employ a staff member and grant a kitchen role", async () => {
   assert.deepEqual(member.roles, ["kitchen"]);
 });
 
+test("staff account emails come from the staff mailbox", async () => {
+  const reset = await fetch(stack.apiUrl + "/api/auth/request-password-reset", {
+    method: "POST", headers: { "content-type": "application/json" },
+    body: JSON.stringify({ email: "staff.test@ivy.test", redirectTo: "http://127.0.0.1:5173/" }),
+  });
+  assert.equal(reset.status, 200);
+  const { email } = await (await fetch(stack.apiUrl + "/__test/emails")).json() as { email: Json | null };
+  assert.equal(email?.to, "staff.test@ivy.test");
+  assert.equal(email?.mailbox, "staff");
+  assert.equal(email?.from, "The Ivy Pizza <staff@theivypizza.com>");
+});
+
 test("employee numbers are unique", async () => {
   const response = await call("/api/hr/staff/assign", {
     cookie: ownerCookie,

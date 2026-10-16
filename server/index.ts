@@ -1,7 +1,8 @@
 import express from "express";
 import { toNodeHandler } from "better-auth/node";
 import { database, runMigrations } from "./database.js";
-import { auth, runBetterAuthMigrations, takeTestEmail } from "./better-auth.js";
+import { auth, runBetterAuthMigrations } from "./better-auth.js";
+import { takeTestEmail } from "./email.js";
 import { requireAuth } from "./auth.js";
 import kitchen from "./routes/kitchen.js";
 import hr from "./routes/hr.js";

@@ -90,8 +90,10 @@ test("unconfirmed sign-in resends the email confirmation", async () => {
     body: JSON.stringify({ name: "Pending Customer", email: "pending.test@ivy.test", password: "test-password-123", callbackURL: `${stack.apiUrl}/` }),
   });
   assert.equal(signup.status, 200);
-  const firstMail = await (await fetch(stack.apiUrl + "/__test/emails")).json() as { email: { to: string } | null };
+  const firstMail = await (await fetch(stack.apiUrl + "/__test/emails")).json() as { email: { to: string; mailbox: string; from: string } | null };
   assert.equal(firstMail.email?.to, "pending.test@ivy.test");
+  assert.equal(firstMail.email?.mailbox, "customers");
+  assert.equal(firstMail.email?.from, "The Ivy Pizza <customers@theivypizza.com>");
 
   const signIn = await fetch(stack.apiUrl + "/api/auth/sign-in/email", {
     method: "POST", headers: { "content-type": "application/json" },
@@ -116,9 +118,10 @@ test("verified customers can sign in and reset their password by email", async (
     body: JSON.stringify({ email: "customer.test@ivy.test", redirectTo: "http://127.0.0.1:5173/" }),
   });
   assert.equal(resetRequest.status, 200);
-  const { email } = await (await fetch(stack.apiUrl + "/__test/emails")).json() as { email: { to: string; text: string } | null };
+  const { email } = await (await fetch(stack.apiUrl + "/__test/emails")).json() as { email: { to: string; text: string; mailbox: string } | null };
   assert.ok(email);
   assert.equal(email.to, "customer.test@ivy.test");
+  assert.equal(email.mailbox, "customers");
   const resetUrl = email.text.match(/https?:\/\/[^\s]+/)?.[0];
   assert.ok(resetUrl);
   const token = new URL(resetUrl).searchParams.get("resetToken");

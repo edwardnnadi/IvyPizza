@@ -81,7 +81,7 @@ export async function startLocalStack(): Promise<LocalStack> {
       env: {
         ...process.env, NODE_ENV: "test", DATABASE_URL: databaseUrl, DATABASE_CA_CERT: "", DATABASE_SOCKET_PATH: "",
         BETTER_AUTH_URL: apiUrl, BETTER_AUTH_SECRET: "local-test-only-better-auth-secret-0123456789",
-        AUTH_TRUSTED_ORIGINS: apiUrl, AUTH_COOKIE_DOMAIN: "", AUTH_FRONTEND_URL: apiUrl, SMTP_HOST: "", SMTP_USER: "", SMTP_PASSWORD: "", PORT: String(apiPort), API_PORT: String(apiPort), APP_BASE_PATH: "",
+        AUTH_TRUSTED_ORIGINS: apiUrl, AUTH_COOKIE_DOMAIN: "", AUTH_FRONTEND_URL: apiUrl, SMTP_HOST: "", PORT: String(apiPort), API_PORT: String(apiPort), APP_BASE_PATH: "",
         CORS_ORIGINS: "http://127.0.0.1:5173", BUSINESS_TIMEZONE: "Africa/Lagos",
         CHECKOUT_DELIVERY_FEE_MINOR: "150000", CHECKOUT_TAX_BASIS_POINTS: "0",
       }, stdio: ["ignore", "pipe", "pipe"],
