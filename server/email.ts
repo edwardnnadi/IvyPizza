@@ -103,12 +103,29 @@ export async function sendEmail(mailbox: Mailbox, email: Email): Promise<void> {
     testEmails.push({ ...email, mailbox, from });
     return;
   }
-  if (emailProvider === "resend") {
-    await sendWithResend(from, email);
-    return;
+  // Logged so delivery problems can be traced in the host's app log without exposing the full address.
+  const label = `${mailbox} email "${email.subject}" to ${maskAddress(email.to)}`;
+  console.log(`Sending ${label}`);
+  try {
+    if (emailProvider === "resend") {
+      await sendWithResend(from, email);
+    } else if (emailProvider === "smtp") {
+      const info = await transporterFor(mailbox).sendMail({ from, ...email });
+      console.log(`Sent ${label}: ${info.response}`);
+      return;
+    } else {
+      throw new Error(`Unsupported EMAIL_PROVIDER: ${emailProvider}`);
+    }
+    console.log(`Sent ${label}`);
+  } catch (error) {
+    console.error(`Failed to send ${label}:`, error instanceof Error ? error.message : error);
+    throw error;
   }
-  if (emailProvider !== "smtp") throw new Error(`Unsupported EMAIL_PROVIDER: ${emailProvider}`);
-  await transporterFor(mailbox).sendMail({ from, ...email });
+}
+
+function maskAddress(address: string): string {
+  const [local = "", domain = ""] = address.split("@");
+  return `${local.slice(0, 2)}***@${domain}`;
 }
 
 // Account emails for staff come from the staff mailbox; everyone else is a customer.
