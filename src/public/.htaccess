@@ -1,2 +1,2 @@
 RewriteEngine On
-RewriteRule ^api(/.*)?$ https://ivy-pizza-api.onrender.com/api$1 [R=307,L]
+RewriteRule ^api(/.*)?$ https://api.theivypizza.com/api$1 [R=307,L]

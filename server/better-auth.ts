@@ -1,6 +1,6 @@
 import { betterAuth } from "better-auth";
 import nodemailer from "nodemailer";
-import { database } from "./database.js";
+import { pool } from "./database.js";
 
 interface AuthEmail {
   to: string;
@@ -90,7 +90,7 @@ export const auth = betterAuth({
   baseURL,
   basePath: "/api/auth",
   secret,
-  database,
+  database: pool,
   trustedOrigins,
   advanced: {
     useSecureCookies: production,
@@ -133,10 +133,6 @@ export const auth = betterAuth({
 export async function runBetterAuthMigrations(): Promise<void> {
   const context = await auth.$context;
   await context.runMigrations();
-  for (const table of ["user", "session", "account", "verification"]) {
-    await database.query(`ALTER TABLE public."${table}" ENABLE ROW LEVEL SECURITY`);
-    await database.query(`REVOKE ALL ON TABLE public."${table}" FROM PUBLIC, anon, authenticated`);
-  }
 }
 
 export function takeTestEmail(): AuthEmail | undefined {

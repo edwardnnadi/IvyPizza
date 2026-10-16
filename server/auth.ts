@@ -1,7 +1,7 @@
 import { fromNodeHeaders } from "better-auth/node";
 import type { RequestHandler } from "express";
 import { auth } from "./better-auth.js";
-import { database } from "./database.js";
+import { acquireLock, database, isDuplicateKeyError, parseJson, releaseLock, type Queryable } from "./database.js";
 
 export const roles = ["customer", "kitchen", "manager", "rider", "hr", "owner"] as const;
 export type Role = (typeof roles)[number];
@@ -22,6 +22,60 @@ declare global {
   }
 }
 
+// Finds the application profile for a Better Auth user, linking an existing profile with the same
+// email or creating one, and makes sure it has the customer role. Returns null if the email
+// already belongs to a profile linked to a different sign-in.
+async function linkProfile(
+  client: Queryable,
+  user: { id: string; email: string; name: string },
+): Promise<AuthPrincipal | null> {
+  const displayName = user.name || user.email;
+  const { rows: [existing] } = await client.query<{ id: string }>(
+    `SELECT id FROM users
+     WHERE better_auth_user_id = ? OR (better_auth_user_id IS NULL AND lower(email) = lower(?))
+     ORDER BY better_auth_user_id = ? DESC
+     LIMIT 1 FOR UPDATE`,
+    [user.id, user.email, user.id],
+  );
+  let profileId: string;
+  if (existing) {
+    await client.query(
+      "UPDATE users SET better_auth_user_id = ?, email = ?, display_name = ? WHERE id = ?",
+      [user.id, user.email, displayName, existing.id],
+    );
+    profileId = existing.id;
+  } else {
+    const { rows: [created] } = await client.query<{ id: string }>(
+      "INSERT INTO users (better_auth_user_id, email, display_name) VALUES (?, ?, ?) RETURNING id",
+      [user.id, user.email, displayName],
+    );
+    profileId = created!.id;
+  }
+  await client.query(
+    `INSERT INTO user_roles (user_id, role_id)
+     SELECT ?, id FROM roles WHERE name = 'customer'
+     ON DUPLICATE KEY UPDATE user_id = user_id`,
+    [profileId],
+  );
+  const { rows } = await client.query<{ display_name: string; email: string | null; role: Role | null }>(
+    `SELECT u.display_name, u.email, r.name AS role
+     FROM users u
+     LEFT JOIN user_roles ur ON ur.user_id = u.id
+     LEFT JOIN roles r ON r.id = ur.role_id
+     WHERE u.id = ?`,
+    [profileId],
+  );
+  const profile = rows[0];
+  if (!profile) return null;
+  return {
+    authUserId: user.id,
+    profileId,
+    email: profile.email,
+    displayName: profile.display_name,
+    roles: rows.flatMap((row) => (row.role ? [row.role] : [])),
+  };
+}
+
 export const requireAuth: RequestHandler = async (request, response, next) => {
   try {
     const session = await auth.api.getSession({ headers: fromNodeHeaders(request.headers) });
@@ -35,75 +89,28 @@ export const requireAuth: RequestHandler = async (request, response, next) => {
     }
 
     const client = await database.connect();
+    let principal: AuthPrincipal | null = null;
     try {
-      await client.query("BEGIN");
-      await client.query("SELECT pg_advisory_xact_lock(hashtext($1))", [session.user.email.toLowerCase()]);
-      const profile = await client.query<{
-        profile_id: string;
-        display_name: string;
-        email: string | null;
-        roles: Role[];
-      }>(
-        `WITH selected AS (
-           SELECT id FROM public.users
-           WHERE better_auth_user_id = $1
-              OR (better_auth_user_id IS NULL AND lower(email) = lower($2))
-           ORDER BY (better_auth_user_id = $1) DESC NULLS LAST
-           LIMIT 1
-         ), linked AS (
-           UPDATE public.users AS u
-           SET better_auth_user_id = $1, email = $2, display_name = $3
-           FROM selected
-           WHERE u.id = selected.id
-             AND (u.better_auth_user_id IS NULL OR u.better_auth_user_id = $1)
-           RETURNING u.id, u.display_name, u.email
-         ), created AS (
-           INSERT INTO public.users (better_auth_user_id, email, display_name)
-           SELECT $1, $2, $3
-           WHERE NOT EXISTS (SELECT 1 FROM linked)
-             AND NOT EXISTS (SELECT 1 FROM public.users WHERE better_auth_user_id = $1)
-           RETURNING id, display_name, email
-         ), profile AS (
-           SELECT * FROM linked UNION ALL SELECT * FROM created
-         ), customer_role AS (
-           INSERT INTO public.user_roles (user_id, role_id)
-           SELECT profile.id, role.id FROM profile JOIN public.roles role ON role.name = 'customer'
-           ON CONFLICT DO NOTHING
-           RETURNING user_id, role_id
-         ), profile_roles AS (
-           -- Rows inserted by customer_role are invisible to user_roles reads in this
-           -- same statement, so a first request must take the new grant from RETURNING.
-           SELECT ur.user_id, ur.role_id FROM public.user_roles ur JOIN profile ON ur.user_id = profile.id
-           UNION
-           SELECT user_id, role_id FROM customer_role
-         )
-         SELECT profile.id AS profile_id, profile.display_name, profile.email,
-                COALESCE(array_agg(DISTINCT role.name) FILTER (WHERE role.name IS NOT NULL), ARRAY[]::TEXT[]) AS roles
-         FROM profile
-         LEFT JOIN profile_roles pr ON pr.user_id = profile.id
-         LEFT JOIN public.roles role ON role.id = pr.role_id
-         GROUP BY profile.id, profile.display_name, profile.email`,
-        [session.user.id, session.user.email, session.user.name || session.user.email],
-      );
-      await client.query("COMMIT");
-      const row = profile.rows[0];
-      if (!row) {
-        response.status(409).json({ error: "This email is already linked to another account" });
-        return;
+      // Serialize first requests for the same email so one profile is created and linked.
+      const lock = await acquireLock(client, `profile:${session.user.email.toLowerCase()}`);
+      try {
+        await client.query("START TRANSACTION");
+        principal = await linkProfile(client, session.user);
+        await client.query("COMMIT");
+      } catch (error) {
+        await client.query("ROLLBACK");
+        if (!isDuplicateKeyError(error)) throw error;
+      } finally {
+        await releaseLock(client, lock);
       }
-      request.principal = {
-        authUserId: session.user.id,
-        profileId: row.profile_id,
-        email: row.email,
-        displayName: row.display_name,
-        roles: row.roles,
-      };
-    } catch (error) {
-      await client.query("ROLLBACK");
-      throw error;
     } finally {
       client.release();
     }
+    if (!principal) {
+      response.status(409).json({ error: "This email is already linked to another account" });
+      return;
+    }
+    request.principal = principal;
     next();
   } catch (error) {
     next(error);
@@ -127,11 +134,11 @@ export function requireAnyRole(...allowedRoles: Role[]): RequestHandler {
 export async function canAccessOrder(principal: AuthPrincipal, orderId: string): Promise<boolean> {
   if (principal.roles.some((role) => role === "manager" || role === "owner")) return true;
   if (principal.roles.includes("customer")) {
-    const result = await database.query("SELECT 1 FROM public.orders WHERE id = $1 AND customer_id = $2", [orderId, principal.profileId]);
+    const result = await database.query("SELECT 1 FROM orders WHERE id = ? AND customer_id = ?", [orderId, principal.profileId]);
     if (result.rowCount) return true;
   }
   if (principal.roles.includes("rider")) {
-    const result = await database.query(`SELECT 1 FROM public.rider_assignments WHERE order_id = $1 AND rider_id = $2 AND ended_at IS NULL`, [orderId, principal.profileId]);
+    const result = await database.query("SELECT 1 FROM rider_assignments WHERE order_id = ? AND rider_id = ? AND ended_at IS NULL", [orderId, principal.profileId]);
     if (result.rowCount) return true;
   }
   return false;
@@ -139,13 +146,20 @@ export async function canAccessOrder(principal: AuthPrincipal, orderId: string):
 
 export async function loadKitchenOrderSummary(principal: AuthPrincipal, orderId: string): Promise<Record<string, unknown> | null> {
   if (!principal.roles.includes("kitchen")) return null;
-  const result = await database.query(
-    `SELECT o.id, o.order_number, o.fulfillment_status, o.created_at,
-            COALESCE(jsonb_agg(jsonb_build_object('item', oi.item_snapshot, 'quantity', oi.quantity,
-              'unit_price_minor', oi.unit_price_minor, 'line_total_minor', oi.line_total_minor) ORDER BY oi.id)
-              FILTER (WHERE oi.id IS NOT NULL), '[]'::jsonb) AS items
-     FROM public.orders o LEFT JOIN public.order_items oi ON oi.order_id = o.id
-     WHERE o.id = $1 AND o.fulfillment_status IN ('accepted', 'preparing', 'ready_for_delivery')
-     GROUP BY o.id`, [orderId]);
-  return result.rows[0] ?? null;
+  const { rows: [order] } = await database.query(
+    `SELECT id, order_number, fulfillment_status, created_at FROM orders
+     WHERE id = ? AND fulfillment_status IN ('accepted', 'preparing', 'ready_for_delivery')`, [orderId]);
+  if (!order) return null;
+  const { rows: items } = await database.query<{ item_snapshot: unknown; quantity: number; unit_price_minor: number; line_total_minor: number }>(
+    `SELECT item_snapshot, quantity, unit_price_minor, line_total_minor FROM order_items
+     WHERE order_id = ? ORDER BY id`, [orderId]);
+  return {
+    ...order,
+    items: items.map((item) => ({
+      item: parseJson(item.item_snapshot),
+      quantity: item.quantity,
+      unit_price_minor: item.unit_price_minor,
+      line_total_minor: item.line_total_minor,
+    })),
+  };
 }

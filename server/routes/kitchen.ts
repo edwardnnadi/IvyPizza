@@ -1,5 +1,5 @@
 import { Router } from "express";
-import { database } from "../database.js";
+import { database, parseJson } from "../database.js";
 import { requireAnyRole, requireAuth } from "../auth.js";
 
 const kitchen = Router();
@@ -9,28 +9,25 @@ const allowedKitchenStatuses = new Set(["preparing", "ready_for_delivery"]);
 
 kitchen.get("/orders", ...staffAccess, async (_request, response, next) => {
   try {
-    const result = await database.query(
-      `SELECT o.id,
-              o.order_number,
-              o.fulfillment_status,
-              o.created_at,
-              COALESCE(
-                jsonb_agg(
-                  jsonb_build_object(
-                    'item', oi.item_snapshot,
-                    'quantity', oi.quantity,
-                    'unit_price_minor', oi.unit_price_minor,
-                    'line_total_minor', oi.line_total_minor
-                  ) ORDER BY oi.id
-                ) FILTER (WHERE oi.id IS NOT NULL),
-                '[]'::jsonb
-              ) AS items
-       FROM public.orders AS o
-       LEFT JOIN public.order_items AS oi ON oi.order_id = o.id
-       WHERE o.fulfillment_status IN ('accepted', 'preparing', 'ready_for_delivery')
-       GROUP BY o.id
-       ORDER BY o.created_at ASC`,
+    const orders = await database.query<Record<string, unknown> & { id: string }>(
+      `SELECT id, order_number, fulfillment_status, created_at
+       FROM orders
+       WHERE fulfillment_status IN ('accepted', 'preparing', 'ready_for_delivery')
+       ORDER BY created_at ASC`,
     );
+    const orderIds = orders.rows.map((order) => order.id);
+    const items = orderIds.length
+      ? await database.query<{ order_id: string; item_snapshot: unknown; quantity: number; unit_price_minor: number; line_total_minor: number }>(
+        `SELECT order_id, item_snapshot, quantity, unit_price_minor, line_total_minor
+         FROM order_items WHERE order_id IN (?) ORDER BY id`,
+        [orderIds],
+      )
+      : { rows: [] };
+    const itemsByOrder = new Map<string, unknown[]>();
+    for (const { order_id, item_snapshot, ...line } of items.rows) {
+      itemsByOrder.set(order_id, [...(itemsByOrder.get(order_id) ?? []), { item: parseJson(item_snapshot), ...line }]);
+    }
+    const result = { rows: orders.rows.map((order) => ({ ...order, items: itemsByOrder.get(order.id) ?? [] })) };
     response.json({ orders: result.rows });
   } catch (error) {
     next(error);
@@ -57,9 +54,9 @@ kitchen.patch("/orders/:orderId/status", ...staffAccess, async (request, respons
   const expectedPreviousStatus = status === "preparing" ? "accepted" : "preparing";
   const client = await database.connect();
   try {
-    await client.query("BEGIN");
+    await client.query("START TRANSACTION");
     const orderResult = await client.query<{ id: string; fulfillment_status: string }>(
-      "SELECT id, fulfillment_status FROM public.orders WHERE id = $1 FOR UPDATE",
+      "SELECT id, fulfillment_status FROM orders WHERE id = ? FOR UPDATE",
       [orderId],
     );
     const order = orderResult.rows[0];
@@ -78,12 +75,12 @@ kitchen.patch("/orders/:orderId/status", ...staffAccess, async (request, respons
     }
 
     await client.query(
-      "UPDATE public.orders SET fulfillment_status = $2 WHERE id = $1",
-      [orderId, status],
+      "UPDATE orders SET fulfillment_status = ? WHERE id = ?",
+      [status, orderId],
     );
     await client.query(
-      `INSERT INTO public.order_status_events (order_id, actor_id, previous_status, new_status)
-       VALUES ($1, $2, $3, $4)`,
+      `INSERT INTO order_status_events (order_id, actor_id, previous_status, new_status)
+       VALUES (?, ?, ?, ?)`,
       [orderId, request.principal!.profileId, order.fulfillment_status, status],
     );
     await client.query("COMMIT");

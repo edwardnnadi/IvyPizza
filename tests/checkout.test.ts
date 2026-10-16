@@ -3,7 +3,7 @@
 import assert from "node:assert/strict";
 import { randomUUID } from "node:crypto";
 import { after, before, test } from "node:test";
-import pg from "pg";
+import mysql from "mysql2/promise";
 import { startLocalStack, type LocalStack } from "./support/local-stack.js";
 
 interface MenuOption { id: string; type: "size" | "extra"; available: boolean; priceDeltaMinor: number }
@@ -258,36 +258,40 @@ test("customers cannot reach staff screens", async () => {
 });
 
 test("database holds exactly the expected, internally consistent orders", async () => {
-  const client = new pg.Client({ connectionString: stack.databaseUrl, ssl: { ca: stack.databaseCa } });
-  await client.connect();
+  const connection = await mysql.createConnection(stack.databaseUrl);
   try {
-    const { rows: [stats] } = await client.query(`
+    const [[stats]] = await connection.query<mysql.RowDataPacket[]>(`
       SELECT
-        (SELECT COUNT(*) FROM public.orders o JOIN public.users u ON u.id = o.customer_id
-          WHERE u.better_auth_user_id = $1)::INT AS customer_orders,
-        (SELECT COUNT(*) FROM public.orders WHERE idempotency_key = $2)::INT AS burst_orders,
-        (SELECT COUNT(*) FROM public.order_items oi JOIN public.orders o ON o.id = oi.order_id
-          WHERE o.order_number = $3)::INT AS first_lines,
-        (SELECT COUNT(*) FROM public.order_status_events e JOIN public.orders o ON o.id = e.order_id
-          WHERE o.order_number = $3)::INT AS first_events,
-        (SELECT COUNT(*) FROM public.orders o
+        (SELECT COUNT(*) FROM orders o JOIN users u ON u.id = o.customer_id
+          WHERE u.better_auth_user_id = ?) AS customer_orders,
+        (SELECT COUNT(*) FROM orders WHERE idempotency_key = ?) AS burst_orders,
+        (SELECT COUNT(*) FROM order_items oi JOIN orders o ON o.id = oi.order_id
+          WHERE o.order_number = ?) AS first_lines,
+        (SELECT COUNT(*) FROM order_status_events e JOIN orders o ON o.id = e.order_id
+          WHERE o.order_number = ?) AS first_events,
+        (SELECT COUNT(*) FROM orders o
           WHERE o.total_minor <> o.subtotal_minor + o.delivery_fee_minor + o.tax_minor
-             OR o.subtotal_minor <> (SELECT SUM(line_total_minor) FROM public.order_items WHERE order_id = o.id))::INT AS inconsistent,
-        (SELECT COUNT(*) = 4 AND bool_and(relrowsecurity)
-           FROM pg_class WHERE relnamespace = 'public'::regnamespace
-             AND relname = ANY(ARRAY['user', 'session', 'account', 'verification'])) AS auth_tables_rls,
-        (NOT has_table_privilege('anon', 'public."user"', 'SELECT')
-          AND NOT has_table_privilege('authenticated', 'public."account"', 'SELECT')) AS auth_tables_private`,
-      [customerAuthId, burstKey, firstOrder.orderNumber]);
+             OR o.subtotal_minor <> (SELECT SUM(line_total_minor) FROM order_items WHERE order_id = o.id)) AS inconsistent`,
+      [customerAuthId, burstKey, firstOrder.orderNumber, firstOrder.orderNumber]);
     // First checkout, the burst, and the price-tampering checkout.
-    assert.equal(stats.customer_orders, 3);
-    assert.equal(stats.burst_orders, 1);
-    assert.equal(stats.first_lines, 2);
-    assert.equal(stats.first_events, 1);
-    assert.equal(stats.inconsistent, 0);
-    assert.equal(stats.auth_tables_rls, true);
-    assert.equal(stats.auth_tables_private, true);
+    assert.equal(stats!.customer_orders, 3);
+    assert.equal(stats!.burst_orders, 1);
+    assert.equal(stats!.first_lines, 2);
+    assert.equal(stats!.first_events, 1);
+    assert.equal(stats!.inconsistent, 0);
+
+    // Database rules hold even for writes that bypass the API.
+    await assert.rejects(
+      connection.query("UPDATE order_status_events SET reason = 'edited' WHERE new_status = 'awaiting_acceptance'"),
+      /append-only/);
+    await assert.rejects(
+      connection.query(`INSERT INTO user_roles (user_id, role_id)
+        SELECT u.id, r.id FROM users u JOIN roles r ON r.name = 'kitchen' WHERE u.better_auth_user_id = ?`, [customerAuthId]),
+      /active employment record/);
+    await assert.rejects(
+      connection.query("UPDATE orders SET total_minor = total_minor + 1 WHERE order_number = ?", [firstOrder.orderNumber]),
+      /orders_total_matches_components_check/);
   } finally {
-    await client.end();
+    await connection.end();
   }
 });

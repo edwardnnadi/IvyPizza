@@ -7,27 +7,25 @@ const menu = Router();
 
 menu.get("/", async (_request, response, next) => {
   try {
-    const result = await database.query(
-      `SELECT item.id, item.slug, item.name, item.category, item.description,
-              item.price_minor AS "priceMinor", item.currency, item.available,
-              item.display_order AS "displayOrder",
-              COALESCE(
-                jsonb_agg(
-                  jsonb_build_object(
-                    'id', menu_option.id,
-                    'name', menu_option.name,
-                    'type', menu_option.option_type,
-                    'priceDeltaMinor', menu_option.price_delta_minor,
-                    'available', menu_option.available
-                  ) ORDER BY menu_option.option_type, menu_option.display_order, menu_option.name
-                ) FILTER (WHERE menu_option.id IS NOT NULL),
-                '[]'::jsonb
-              ) AS options
-       FROM public.menu_items AS item
-       LEFT JOIN public.menu_options AS menu_option ON menu_option.menu_item_id = item.id
-       GROUP BY item.id
-       ORDER BY item.display_order ASC, item.name ASC`,
-    );
+    const [items, options] = await Promise.all([
+      database.query<Record<string, unknown> & { id: string }>(
+        `SELECT id, slug, name, category, description, price_minor AS priceMinor, currency, available,
+                display_order AS displayOrder
+         FROM menu_items
+         ORDER BY display_order ASC, name ASC`,
+      ),
+      database.query<{ menuItemId: string; id: string; name: string; type: string; priceDeltaMinor: number | null; available: boolean }>(
+        `SELECT menu_item_id AS menuItemId, id, name, option_type AS type,
+                price_delta_minor AS priceDeltaMinor, available
+         FROM menu_options
+         ORDER BY option_type, display_order, name`,
+      ),
+    ]);
+    const optionsByItem = new Map<string, Array<Omit<typeof options.rows[number], "menuItemId">>>();
+    for (const { menuItemId, ...option } of options.rows) {
+      optionsByItem.set(menuItemId, [...(optionsByItem.get(menuItemId) ?? []), option]);
+    }
+    const result = { rows: items.rows.map((item) => ({ ...item, options: optionsByItem.get(item.id) ?? [] })) };
     response.set("Cache-Control", "public, max-age=60, stale-while-revalidate=300");
     response.json({ items: result.rows });
   } catch (error) {

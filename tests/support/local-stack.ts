@@ -1,17 +1,18 @@
-import { spawn, type ChildProcess } from "node:child_process";
-import { mkdtemp, rm, writeFile } from "node:fs/promises";
+import { execFile, spawn, type ChildProcess } from "node:child_process";
+import { randomBytes } from "node:crypto";
 import net from "node:net";
-import { tmpdir } from "node:os";
-import { join, resolve } from "node:path";
-import EmbeddedPostgres from "embedded-postgres";
-import pg from "pg";
-import selfsigned from "selfsigned";
+import { resolve } from "node:path";
+import { promisify } from "node:util";
+import mysql from "mysql2/promise";
+
+const run = promisify(execFile);
+// Matches the MariaDB version on the WhoGoHost server.
+const mariadbImage = "mariadb:11.4";
 
 export interface TestCustomer { cookie: string; userId: string; }
 export interface LocalStack {
   apiUrl: string;
   databaseUrl: string;
-  databaseCa: string;
   // loadProfile=false skips the warm-up /api/me call so tests can exercise a session's first request.
   createCustomer(email: string, displayName?: string, options?: { loadProfile?: boolean }): Promise<TestCustomer>;
   stop(): Promise<void>;
@@ -37,37 +38,40 @@ async function waitForHealth(url: string, api: ChildProcess, output: () => strin
   throw new Error(`API did not become healthy within 60s:\n${output()}`);
 }
 
+async function waitForDatabase(databaseUrl: string): Promise<void> {
+  const deadline = Date.now() + 90_000;
+  let lastError: unknown;
+  while (Date.now() < deadline) {
+    try {
+      // The image's first-run setup uses a socket-only server, so a TCP login means setup finished.
+      const connection = await mysql.createConnection(databaseUrl);
+      await connection.end();
+      return;
+    } catch (error) { lastError = error; }
+    await new Promise((done) => setTimeout(done, 500));
+  }
+  throw new Error(`MariaDB did not become ready within 90s: ${String(lastError)}`);
+}
+
 export async function startLocalStack(): Promise<LocalStack> {
-  const workDir = await mkdtemp(join(tmpdir(), "ivy-pizza-test-"));
   const stoppers: Array<() => Promise<void>> = [];
   const stop = async () => {
     for (const stopper of stoppers.reverse()) { try { await stopper(); } catch { /* finish cleanup */ } }
-    await rm(workDir, { recursive: true, force: true });
   };
   try {
-    const certificate = selfsigned.generate([{ name: "commonName", value: "localhost" }], {
-      days: 1, keySize: 2048, algorithm: "sha256",
-      extensions: [{ name: "subjectAltName", altNames: [{ type: 2, value: "localhost" }, { type: 7, ip: "127.0.0.1" }] }],
-    });
-    const certPath = join(workDir, "server.crt");
-    const keyPath = join(workDir, "server.key");
-    await writeFile(certPath, certificate.cert);
-    await writeFile(keyPath, certificate.private, { mode: 0o600 });
     const databasePort = await freePort();
     const password = "local-test-only";
-    const postgres = new EmbeddedPostgres({
-      databaseDir: join(workDir, "data"), user: "postgres", password, port: databasePort, persistent: false,
-      initdbFlags: ["--encoding=UTF8", "--locale=C"],
-      postgresFlags: ["-c", "ssl=on", "-c", `ssl_cert_file=${certPath.replaceAll("\\", "/")}`, "-c", `ssl_key_file=${keyPath.replaceAll("\\", "/")}`],
-      onLog: () => {},
-    });
-    await postgres.initialise(); await postgres.start(); stoppers.push(() => postgres.stop());
-    await postgres.createDatabase("ivy");
-    const databaseUrl = `postgresql://postgres:${password}@localhost:${databasePort}/ivy`;
-    const setup = new pg.Client({ connectionString: databaseUrl, ssl: { ca: certificate.cert } });
-    await setup.connect();
-    await setup.query(`CREATE ROLE anon NOLOGIN; CREATE ROLE authenticated NOLOGIN; CREATE ROLE service_role NOLOGIN; CREATE SCHEMA auth; CREATE TABLE auth.users (id UUID PRIMARY KEY, email TEXT, phone TEXT, raw_user_meta_data JSONB NOT NULL DEFAULT '{}'::JSONB);`);
-    await setup.end();
+    const container = `ivy-pizza-test-${randomBytes(4).toString("hex")}`;
+    // Requires Docker. The database user only has rights on its own database, like the hosting account.
+    await run("docker", [
+      "run", "-d", "--rm", "--name", container, "-p", `127.0.0.1:${databasePort}:3306`,
+      "-e", `MARIADB_ROOT_PASSWORD=${password}`, "-e", "MARIADB_DATABASE=ivy",
+      "-e", "MARIADB_USER=ivy", "-e", `MARIADB_PASSWORD=${password}`,
+      mariadbImage,
+    ]);
+    stoppers.push(async () => { await run("docker", ["rm", "-f", container]); });
+    const databaseUrl = `mysql://ivy:${password}@127.0.0.1:${databasePort}/ivy`;
+    await waitForDatabase(databaseUrl);
 
     const apiPort = await freePort();
     const apiUrl = `http://127.0.0.1:${apiPort}`;
@@ -75,7 +79,7 @@ export async function startLocalStack(): Promise<LocalStack> {
     const api = spawn(process.execPath, [resolve("node_modules/tsx/dist/cli.mjs"), "server/index.ts"], {
       cwd: resolve("."),
       env: {
-        ...process.env, NODE_ENV: "test", DATABASE_URL: databaseUrl, DATABASE_CA_CERT: certPath,
+        ...process.env, NODE_ENV: "test", DATABASE_URL: databaseUrl, DATABASE_CA_CERT: "", DATABASE_SOCKET_PATH: "",
         BETTER_AUTH_URL: apiUrl, BETTER_AUTH_SECRET: "local-test-only-better-auth-secret-0123456789",
         AUTH_TRUSTED_ORIGINS: apiUrl, AUTH_COOKIE_DOMAIN: "", AUTH_FRONTEND_URL: apiUrl, SMTP_HOST: "", SMTP_USER: "", SMTP_PASSWORD: "", PORT: String(apiPort), API_PORT: String(apiPort), APP_BASE_PATH: "",
         CORS_ORIGINS: "http://127.0.0.1:5173", BUSINESS_TIMEZONE: "Africa/Lagos",
@@ -91,7 +95,7 @@ export async function startLocalStack(): Promise<LocalStack> {
     await waitForHealth(apiUrl, api, () => apiOutput);
 
     return {
-      apiUrl, databaseUrl, databaseCa: certificate.cert,
+      apiUrl, databaseUrl,
       async createCustomer(email, displayName = "Test Customer", options = {}) {
         const signup = await fetch(`${apiUrl}/api/auth/sign-up/email`, {
           method: "POST", headers: { "content-type": "application/json" },

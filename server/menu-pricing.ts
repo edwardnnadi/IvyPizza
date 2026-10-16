@@ -1,4 +1,4 @@
-import type { PoolClient } from "pg";
+import type { Queryable } from "./database.js";
 
 export interface BasketInputLine {
   menuItemId: string;
@@ -56,13 +56,13 @@ export function parseBasketInput(input: unknown): BasketInputLine[] {
 }
 
 export async function calculateMenuQuote(
-  databaseClient: Pick<PoolClient, "query">,
+  databaseClient: Queryable,
   lines: BasketInputLine[],
   lockForOrder = false,
 ): Promise<{ currency: string; subtotalMinor: number; lines: QuotedMenuLine[] }> {
   const menuItemIds = [...new Set(lines.map((line) => line.menuItemId))];
   const optionIds = [...new Set(lines.flatMap((line) => line.optionIds))];
-  const lockClause = lockForOrder ? " FOR SHARE" : "";
+  const lockClause = lockForOrder ? " LOCK IN SHARE MODE" : "";
   const itemResult = await databaseClient.query<{
     id: string;
     name: string;
@@ -72,7 +72,7 @@ export async function calculateMenuQuote(
     available: boolean;
   }>(
     `SELECT id, name, category, price_minor, currency, available
-     FROM public.menu_items WHERE id = ANY($1::UUID[])${lockClause}`,
+     FROM menu_items WHERE id IN (?)${lockClause}`,
     [menuItemIds],
   );
   const optionResult = optionIds.length
@@ -85,7 +85,7 @@ export async function calculateMenuQuote(
       available: boolean;
     }>(
       `SELECT id, menu_item_id, name, option_type, price_delta_minor, available
-       FROM public.menu_options WHERE id = ANY($1::UUID[])${lockClause}`,
+       FROM menu_options WHERE id IN (?)${lockClause}`,
       [optionIds],
     )
     : { rows: [] };

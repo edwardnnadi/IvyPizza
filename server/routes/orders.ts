@@ -1,6 +1,6 @@
 import { createHash } from "node:crypto";
 import { Router } from "express";
-import { database } from "../database.js";
+import { acquireLock, database, isDuplicateKeyError, releaseLock } from "../database.js";
 import { requireAnyRole, requireAuth } from "../auth.js";
 import { calculateOrderTotals } from "../order-pricing.js";
 import { calculateMenuQuote, MenuQuoteError, parseBasketInput } from "../menu-pricing.js";
@@ -82,9 +82,10 @@ orders.post("/", ...customerAccess, async (request, response, next) => {
   const customerId = request.principal!.profileId;
   const lockKey = `${customerId}:${idempotencyKey}`;
   const client = await database.connect();
+  let lock: string | null = null;
   try {
-    await client.query("BEGIN");
-    await client.query("SELECT pg_advisory_xact_lock(hashtextextended($1, 0))", [lockKey]);
+    lock = await acquireLock(client, `checkout:${lockKey}`);
+    await client.query("START TRANSACTION");
     const previous = await client.query<{
       id: string;
       order_number: string;
@@ -93,7 +94,7 @@ orders.post("/", ...customerAccess, async (request, response, next) => {
       idempotency_fingerprint: string | null;
     }>(
       `SELECT id, order_number, fulfillment_status, payment_status, idempotency_fingerprint
-       FROM public.orders WHERE customer_id = $1 AND idempotency_key = $2`,
+       FROM orders WHERE customer_id = ? AND idempotency_key = ?`,
       [customerId, idempotencyKey],
     );
     if (previous.rows[0]) {
@@ -111,8 +112,8 @@ orders.post("/", ...customerAccess, async (request, response, next) => {
 
     const quote = await calculateMenuQuote(client, lines, true);
     const totals = calculateOrderTotals(quote.subtotalMinor);
-    const numberResult = await client.query<{ value: string }>("SELECT nextval('public.order_number_seq')::TEXT AS value");
-    const orderNumber = `IVY-${numberResult.rows[0]!.value.padStart(8, "0")}`;
+    const numberResult = await client.query<{ value: number }>("SELECT NEXTVAL(order_number_seq) AS value");
+    const orderNumber = `IVY-${String(numberResult.rows[0]!.value).padStart(8, "0")}`;
     const snapshot = JSON.stringify({ ...delivery, fulfillmentMethod: "delivery" });
     const inserted = await client.query<{
       id: string;
@@ -120,11 +121,11 @@ orders.post("/", ...customerAccess, async (request, response, next) => {
       fulfillment_status: string;
       payment_status: string;
     }>(
-      `INSERT INTO public.orders
+      `INSERT INTO orders
          (order_number, customer_id, fulfillment_status, payment_status, currency,
           subtotal_minor, delivery_fee_minor, tax_minor, total_minor, delivery_snapshot,
           idempotency_key, idempotency_fingerprint)
-       VALUES ($1, $2, 'awaiting_acceptance', 'pending', $3, $4, $5, $6, $7, $8::JSONB, $9, $10)
+       VALUES (?, ?, 'awaiting_acceptance', 'pending', ?, ?, ?, ?, ?, ?, ?, ?)
        RETURNING id, order_number, fulfillment_status, payment_status`,
       [orderNumber, customerId, quote.currency, totals.subtotalMinor, totals.deliveryFeeMinor,
         totals.taxMinor, totals.totalMinor, snapshot, idempotencyKey, fingerprint],
@@ -139,21 +140,21 @@ orders.post("/", ...customerAccess, async (request, response, next) => {
         options: line.options.map(({ id: _id, ...option }) => option),
       });
       await client.query(
-        `INSERT INTO public.order_items (order_id, item_snapshot, quantity, unit_price_minor, line_total_minor)
-         VALUES ($1, $2::JSONB, $3, $4, $5)`,
+        `INSERT INTO order_items (order_id, item_snapshot, quantity, unit_price_minor, line_total_minor)
+         VALUES (?, ?, ?, ?, ?)`,
         [order.id, itemSnapshot, line.quantity, line.unitPriceMinor, line.lineTotalMinor],
       );
     }
     await client.query(
-      `INSERT INTO public.order_status_events (order_id, actor_id, previous_status, new_status)
-       VALUES ($1, $2, NULL, 'awaiting_acceptance')`,
+      `INSERT INTO order_status_events (order_id, actor_id, previous_status, new_status)
+       VALUES (?, ?, NULL, 'awaiting_acceptance')`,
       [order.id, customerId],
     );
     if (saveAddress) {
       await client.query(
-        `INSERT INTO public.customer_addresses
+        `INSERT INTO customer_addresses
            (customer_id, label, recipient_name, phone, address, landmark, instructions)
-         VALUES ($1, $2, $3, $4, $5, $6, $7)`,
+         VALUES (?, ?, ?, ?, ?, ?, ?)`,
         [customerId, addressLabel, delivery.recipientName, delivery.phone, delivery.address, delivery.landmark, delivery.instructions],
       );
     }
@@ -165,7 +166,7 @@ orders.post("/", ...customerAccess, async (request, response, next) => {
     } catch {
       // Preserve the original database error.
     }
-    if (typeof error === "object" && error !== null && "code" in error && error.code === "23505") {
+    if (isDuplicateKeyError(error)) {
       try {
         const previous = await database.query<{
           id: string;
@@ -175,7 +176,7 @@ orders.post("/", ...customerAccess, async (request, response, next) => {
           idempotency_fingerprint: string | null;
         }>(
           `SELECT id, order_number, fulfillment_status, payment_status, idempotency_fingerprint
-           FROM public.orders WHERE customer_id = $1 AND idempotency_key = $2`,
+           FROM orders WHERE customer_id = ? AND idempotency_key = ?`,
           [customerId, idempotencyKey],
         );
         if (previous.rows[0]) {
@@ -200,7 +201,11 @@ orders.post("/", ...customerAccess, async (request, response, next) => {
     }
     next(error);
   } finally {
-    client.release();
+    try {
+      if (lock) await releaseLock(client, lock);
+    } finally {
+      client.release();
+    }
   }
 });
 

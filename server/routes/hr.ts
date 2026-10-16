@@ -1,5 +1,5 @@
 import { Router } from "express";
-import { database } from "../database.js";
+import { database, isDuplicateKeyError } from "../database.js";
 import { requireAnyRole, requireAuth } from "../auth.js";
 
 const hr = Router();
@@ -9,25 +9,24 @@ const assignableRoles = new Set(["kitchen", "manager", "rider", "hr"]);
 
 hr.get("/staff", ...hrAccess, async (_request, response, next) => {
   try {
-    const result = await database.query(
+    const staff = await database.query<Record<string, unknown> & { roles: string | null }>(
       `SELECT staff.user_id AS id,
               app_user.email,
-              app_user.display_name AS "displayName",
-              staff.employment_status AS "employmentStatus",
-              staff.employee_number AS "employeeNumber",
-              staff.employed_at AS "employedAt",
-              COALESCE(
-                array_agg(DISTINCT role.name) FILTER (WHERE role.name IS NOT NULL AND role.name <> 'customer'),
-                ARRAY[]::TEXT[]
-              ) AS roles
-       FROM public.staff_employment AS staff
-       JOIN public.users AS app_user ON app_user.id = staff.user_id
-       LEFT JOIN public.user_roles AS user_role ON user_role.user_id = staff.user_id
-       LEFT JOIN public.roles AS role ON role.id = user_role.role_id
-       GROUP BY staff.user_id, app_user.email, app_user.display_name
-       ORDER BY (staff.employment_status = 'employed') DESC, app_user.display_name ASC
+              app_user.display_name AS displayName,
+              staff.employment_status AS employmentStatus,
+              staff.employee_number AS employeeNumber,
+              staff.employed_at AS employedAt,
+              GROUP_CONCAT(DISTINCT CASE WHEN role.name <> 'customer' THEN role.name END ORDER BY role.name) AS roles
+       FROM staff_employment AS staff
+       JOIN users AS app_user ON app_user.id = staff.user_id
+       LEFT JOIN user_roles AS user_role ON user_role.user_id = staff.user_id
+       LEFT JOIN roles AS role ON role.id = user_role.role_id
+       GROUP BY staff.user_id, app_user.email, app_user.display_name, staff.employment_status,
+                staff.employee_number, staff.employed_at
+       ORDER BY staff.employment_status = 'employed' DESC, app_user.display_name ASC
        LIMIT 200`,
     );
+    const result = { rows: staff.rows.map((member) => ({ ...member, roles: member.roles ? member.roles.split(",") : [] })) };
     response.json({ staff: result.rows });
   } catch (error) {
     next(error);
@@ -65,9 +64,9 @@ hr.post("/staff/assign", ...hrAccess, async (request, response, next) => {
 
   const client = await database.connect();
   try {
-    await client.query("BEGIN");
+    await client.query("START TRANSACTION");
     const profileResult = await client.query<{ id: string }>(
-      "SELECT id FROM public.users WHERE lower(email) = $1 FOR UPDATE",
+      "SELECT id FROM users WHERE lower(email) = ? FOR UPDATE",
       [email],
     );
     const profile = profileResult.rows[0];
@@ -77,27 +76,38 @@ hr.post("/staff/assign", ...hrAccess, async (request, response, next) => {
       return;
     }
 
-    await client.query(
-      `INSERT INTO public.staff_employment
-         (user_id, employment_status, employee_number, employed_at, ended_at, created_by, updated_by)
-       VALUES ($1, 'employed', NULLIF($2, ''), NOW(), NULL, $3, $3)
-       ON CONFLICT (user_id) DO UPDATE SET
-         employment_status = 'employed',
-         employee_number = COALESCE(EXCLUDED.employee_number, public.staff_employment.employee_number),
-         employed_at = CASE
-           WHEN public.staff_employment.employment_status = 'inactive' THEN NOW()
-           ELSE public.staff_employment.employed_at
-         END,
-         ended_at = NULL,
-         updated_by = EXCLUDED.updated_by,
-         updated_at = NOW()`,
-      [profile.id, employeeNumber, request.principal!.profileId],
+    // Not ON DUPLICATE KEY UPDATE: that would also fire on an employee number clash and
+    // update the other staff member's record instead of refusing.
+    const employment = await client.query(
+      "SELECT 1 FROM staff_employment WHERE user_id = ? FOR UPDATE",
+      [profile.id],
     );
+    if (employment.rowCount) {
+      // Assignments run left to right and see earlier ones, so employed_at is decided before the status changes.
+      await client.query(
+        `UPDATE staff_employment SET
+           employed_at = IF(employment_status = 'inactive', NOW(3), employed_at),
+           employee_number = COALESCE(NULLIF(?, ''), employee_number),
+           employment_status = 'employed',
+           ended_at = NULL,
+           updated_by = ?,
+           updated_at = NOW(3)
+         WHERE user_id = ?`,
+        [employeeNumber, request.principal!.profileId, profile.id],
+      );
+    } else {
+      await client.query(
+        `INSERT INTO staff_employment
+           (user_id, employment_status, employee_number, employed_at, ended_at, created_by, updated_by)
+         VALUES (?, 'employed', NULLIF(?, ''), NOW(3), NULL, ?, ?)`,
+        [profile.id, employeeNumber, request.principal!.profileId, request.principal!.profileId],
+      );
+    }
     await client.query(
-      `INSERT INTO public.user_roles (user_id, role_id, assigned_by)
-       SELECT $1, role.id, $3 FROM public.roles AS role WHERE role.name = $2
-       ON CONFLICT (user_id, role_id) DO UPDATE SET assigned_by = EXCLUDED.assigned_by, assigned_at = NOW()`,
-      [profile.id, role, request.principal!.profileId],
+      `INSERT INTO user_roles (user_id, role_id, assigned_by)
+       SELECT ?, role.id, ? FROM roles AS role WHERE role.name = ?
+       ON DUPLICATE KEY UPDATE assigned_by = VALUES(assigned_by), assigned_at = NOW(3)`,
+      [profile.id, request.principal!.profileId, role],
     );
     await client.query("COMMIT");
     response.status(200).json({ message: "Employment confirmed and staff role assigned" });
@@ -107,7 +117,7 @@ hr.post("/staff/assign", ...hrAccess, async (request, response, next) => {
     } catch {
       // Keep the original database error.
     }
-    if (typeof error === "object" && error !== null && "code" in error && error.code === "23505") {
+    if (isDuplicateKeyError(error)) {
       response.status(409).json({ error: "That employee number is already in use" });
       return;
     }
@@ -126,9 +136,9 @@ hr.patch("/staff/:userId/offboard", ...hrAccess, async (request, response, next)
 
   const client = await database.connect();
   try {
-    await client.query("BEGIN");
+    await client.query("START TRANSACTION");
     const staffResult = await client.query<{ user_id: string }>(
-      "SELECT user_id FROM public.staff_employment WHERE user_id = $1 FOR UPDATE",
+      "SELECT user_id FROM staff_employment WHERE user_id = ? FOR UPDATE",
       [userId],
     );
     if (!staffResult.rowCount) {
@@ -137,9 +147,9 @@ hr.patch("/staff/:userId/offboard", ...hrAccess, async (request, response, next)
       return;
     }
     const ownerResult = await client.query(
-      `SELECT 1 FROM public.user_roles AS user_role
-       JOIN public.roles AS role ON role.id = user_role.role_id
-       WHERE user_role.user_id = $1 AND role.name = 'owner'`,
+      `SELECT 1 FROM user_roles AS user_role
+       JOIN roles AS role ON role.id = user_role.role_id
+       WHERE user_role.user_id = ? AND role.name = 'owner'`,
       [userId],
     );
     if (ownerResult.rowCount) {
@@ -149,10 +159,10 @@ hr.patch("/staff/:userId/offboard", ...hrAccess, async (request, response, next)
     }
 
     await client.query(
-      `UPDATE public.staff_employment
-       SET employment_status = 'inactive', ended_at = NOW(), updated_by = $2, updated_at = NOW()
-       WHERE user_id = $1`,
-      [userId, request.principal!.profileId],
+      `UPDATE staff_employment
+       SET employment_status = 'inactive', ended_at = NOW(3), updated_by = ?, updated_at = NOW(3)
+       WHERE user_id = ?`,
+      [request.principal!.profileId, userId],
     );
     await client.query("COMMIT");
     response.json({ message: "Employment ended and staff roles removed" });
