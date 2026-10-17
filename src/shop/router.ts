@@ -50,7 +50,7 @@ function emit(): void {
 }
 
 /** Paths that belong to other apps on this origin and need a full page load. */
-const externalPaths = /^\/(kitchen|hr|api)(\/|$)/;
+const externalPaths = /^\/(kitchen|hr|manager|api)(\/|$)/;
 
 export function startRouter(): void {
   window.addEventListener("popstate", emit);

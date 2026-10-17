@@ -10,6 +10,7 @@ import menu from "./routes/menu.js";
 import customer from "./routes/customer.js";
 import orders from "./routes/orders.js";
 import ordering from "./routes/ordering.js";
+import manager from "./routes/manager.js";
 
 const app = express();
 const port = Number(process.env.PORT ?? process.env.API_PORT ?? 3001);
@@ -82,6 +83,7 @@ app.use("/api/menu", menu);
 app.use("/api/customer", customer);
 app.use("/api/orders", orders);
 app.use("/api/ordering", ordering);
+app.use("/api/manager", manager);
 
 app.use((_error: unknown, _request: express.Request, response: express.Response, _next: express.NextFunction) => {
   console.error("Request failed");
