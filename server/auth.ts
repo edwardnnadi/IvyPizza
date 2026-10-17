@@ -117,6 +117,20 @@ export const requireAuth: RequestHandler = async (request, response, next) => {
   }
 };
 
+/** Loads the principal when a confirmed session is present, and carries on without one otherwise (guest checkout). */
+export const optionalAuth: RequestHandler = async (request, response, next) => {
+  try {
+    const session = await auth.api.getSession({ headers: fromNodeHeaders(request.headers) });
+    if (!session?.user || !session.user.emailVerified) {
+      next();
+      return;
+    }
+    await requireAuth(request, response, next);
+  } catch (error) {
+    next(error);
+  }
+};
+
 export function requireAnyRole(...allowedRoles: Role[]): RequestHandler {
   return (request, response, next) => {
     if (!request.principal) {

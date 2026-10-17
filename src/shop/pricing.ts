@@ -1,5 +1,5 @@
 import { basketLines, getQuoteState, type Quote } from "./basket.js";
-import { findItem, getMenu, isOrderable, unitPriceMinor } from "./menu-data.js";
+import { findItem, getMenu, isOrderable, lineAvailable, unitPriceMinor } from "./menu-data.js";
 import { getContext } from "./order-context.js";
 import { findArea } from "./zones.js";
 
@@ -7,7 +7,7 @@ import { findArea } from "./zones.js";
 export function estimatedSubtotalMinor(): number {
   return basketLines().reduce((total, line) => {
     const item = findItem(line.menuItemId);
-    return total + (item && isOrderable(item) ? unitPriceMinor(item, line.optionIds) * line.quantity : 0);
+    return total + (item && isOrderable(item) ? unitPriceMinor(item, line) * line.quantity : 0);
   }, 0);
 }
 
@@ -49,8 +49,6 @@ export function unavailableLineIndexes(): number[] {
   if (getMenu().status !== "live") return [];
   return basketLines().flatMap((line, index) => {
     const item = findItem(line.menuItemId);
-    if (!item || !isOrderable(item)) return [index];
-    const optionsOk = line.optionIds.every((id) => item.options.some((option) => option.id === id && option.available && option.priceDeltaMinor !== null));
-    return optionsOk ? [] : [index];
+    return item && lineAvailable(item, line) ? [] : [index];
   });
 }

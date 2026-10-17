@@ -43,15 +43,16 @@ Not in the prototype (still in the wider brief, later phases): account pages, or
 | Tracker | no customer status endpoint | `GET /api/orders/:number` (owner or guest token / number + phone); poll every 15–20 s |
 | Store open/closed | none | opening hours per store (WAT) + manual pause flag |
 
-## Status (2026-10-17)
+## Status (2026-10-18)
 
-**Phases 0 and 1 are built** on branch `ordering-redesign` (`src/shop/`). Notes for the next phases:
-- Unsupported features sit behind flags in `src/shop/features.ts` (pickup, scheduling, vouchers, allergens, builderV2, zonePricing, guestCheckout, bankTransfer, cardPayments). While off, the UI hides them or labels them "coming soon"; nothing is faked.
-- Builder v1 uses the API's options (size + extras). Crust, sauce, cheese and toppings with half placement and amounts come in Phase 2 with their server pricing (`builderV2`).
-- Areas, minimums, ETAs and opening hours are static samples in `src/shop/zones.ts`. The minimum is enforced in the basket and checkout only; the delivery fee is still the API's flat `CHECKOUT_DELIVERY_FEE_MINOR`.
-- The tracker uses the real statuses (Received → Preparing → Ready → Out for delivery → Delivered) and reads `/api/customer/dashboard`. The prototype's time-based "In the oven" step is left for Phase 3.
+**Phases 0–3 are built** on branch `ordering-redesign`. Only Phase 4 (card payments) is left, and it waits on the choice of provider.
+- Phase 2: migration `003_ordering.sql`, `GET /api/ordering/config`, area fees and minimums enforced by the API, vouchers, pickup, scheduled slots with capacity, the full pizza builder (crust, sauce and cheese amounts, toppings with half placement and amounts, special instructions), burger leave-outs, sides, drinks and allergens. Pricing rules are shared between API and storefront (`shared/pizza-rules.ts`).
+- Phase 3: guest checkout with a per-order token, `GET /api/orders/:number`, lookup by number and phone, a live tracker (including the time-based "In the oven" stage), and bank transfer with an "I've paid" report and automatic cancellation after 30 minutes.
+- Kitchen tickets show pickup or delivery, ASAP or scheduled time, half placements, removed toppings and notes.
+- Decisions taken without answers to section 4: guest checkout **on** (`GUEST_CHECKOUT`), **one** kitchen (Wuse 2), sample zones, prices and vouchers from the prototype, and bank transfer shown only when `TRANSFER_*` details are set.
 - Landmark is required at checkout (brief), although the prototype marks it optional.
-- Food photos: drawn pizzas and burgers stand in until real photography exists.
+- Food photos: drawn pizzas, burgers, sides and drinks stand in until real photography exists.
+- Not built yet: the manager screen that accepts orders and verifies transfers. Until then, orders wait in `awaiting_acceptance` and the kitchen queue only shows accepted orders.
 
 ## 3. Phases
 

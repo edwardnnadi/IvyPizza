@@ -1,25 +1,20 @@
 /**
- * Storefront features that the design includes but the API does not support yet.
- * Each flag is switched on in the phase that adds the server side (see design-handoff/ORDERING-PLAN.md).
- * While a flag is off, the matching UI is hidden or shown as "coming soon" rather than faked.
+ * Storefront features and the phase that switched them on (see design-handoff/ORDERING-PLAN.md).
+ * Guest checkout and bank transfer follow the API's settings at runtime (zones.ts: guestCheckoutAllowed, payments).
  */
 export const features = {
-  /** Phase 2: orders carry a fulfilment mode and a store. */
-  pickup: false,
-  /** Phase 2: orders carry a scheduled time and slots are checked server-side. */
-  scheduling: false,
-  /** Phase 2: voucher codes are validated and priced server-side. */
-  vouchers: false,
+  /** Phase 2: orders carry a fulfilment mode and a kitchen. */
+  pickup: true,
+  /** Phase 2: orders carry a scheduled slot, checked and capacity-limited by the API. */
+  scheduling: true,
+  /** Phase 2: voucher codes are validated and priced by the API. */
+  vouchers: true,
   /** Phase 2: menu items carry allergen data. */
-  allergens: false,
+  allergens: true,
   /** Phase 2: crust, sauce, cheese and toppings with half placement and amounts. */
-  builderV2: false,
-  /** Phase 2: delivery fee and minimum come from the chosen zone instead of one flat fee. */
-  zonePricing: false,
-  /** Phase 3: orders can be placed without an account. */
-  guestCheckout: false,
-  /** Phase 3: bank transfer with manual verification. */
-  bankTransfer: false,
+  builderV2: true,
+  /** Phase 2: the delivery fee and minimum come from the chosen area. */
+  zonePricing: true,
   /** Phase 4: card payments through a gateway. */
   cardPayments: false,
 } as const;

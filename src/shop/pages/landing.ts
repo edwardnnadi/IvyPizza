@@ -1,14 +1,14 @@
 import { currentSession, fetchDashboard, openAccount } from "../account.js";
 import { categoryArt, pizzaArt } from "../art.js";
 import { liveDeals } from "../deals.js";
-import { features } from "../features.js";
 import { esc, money } from "../format.js";
 import { categories, getMenu, isOrderable, lowestPriceMinor, menuItems, onMenuChange, sizeOptions, sizeParts, type MenuItem } from "../menu-data.js";
 import { getContext, isLocated } from "../order-context.js";
 import { navigate } from "../router.js";
-import { openAreaSheet, pickupComingSoon } from "../sheets.js";
+import { openAreaSheet } from "../sheets.js";
 import { showToast } from "../toast.js";
-import { pickupReadyText } from "../zones.js";
+import { onConfigChange, pickupReadyText } from "../zones.js";
+import { latestGuestOrderNumber } from "./order-store.js";
 
 function featuredPizza(): MenuItem | undefined {
   const items = menuItems().filter(isOrderable);
@@ -83,7 +83,9 @@ function categoriesMarkup(): string {
 
 async function trackLatestOrder(button: HTMLButtonElement): Promise<void> {
   if (!currentSession()) {
-    openAccount("signin", "Sign in to follow your order.");
+    // Guests track the last order placed on this device, or look one up by number and phone.
+    const guestOrder = latestGuestOrderNumber();
+    navigate(guestOrder ? `/track/${encodeURIComponent(guestOrder)}` : "/track");
     return;
   }
   button.disabled = true;
@@ -121,7 +123,7 @@ export function renderLanding(view: HTMLElement): () => void {
             <div class="start-choices">
               <button class="big-choice gold" type="button" data-start="delivery"><b>Delivery</b><small>To your door in Abuja</small></button>
               <span class="or" aria-hidden="true">OR</span>
-              <button class="big-choice green" type="button" data-start="pickup" ${features.pickup ? "" : `aria-disabled="true"`}><b>Pickup</b><small>${features.pickup ? `Ready in about ${pickupReadyText}` : "Coming soon"}</small></button>
+              <button class="big-choice green" type="button" data-start="pickup"><b>Pickup</b><small>Ready in about ${esc(pickupReadyText())}</small></button>
             </div>
           </div>
         </div>
@@ -146,7 +148,7 @@ export function renderLanding(view: HTMLElement): () => void {
       else openAreaSheet({ mode: "delivery", then: () => navigate("/menu") });
     }
     if (start === "pickup") {
-      if (!features.pickup) pickupComingSoon();
+      if (getContext().mode === "pickup" && isLocated()) navigate("/menu");
       else openAreaSheet({ mode: "pickup", then: () => navigate("/menu") });
     }
     const track = target.closest<HTMLButtonElement>("[data-track]");
@@ -154,8 +156,10 @@ export function renderLanding(view: HTMLElement): () => void {
   };
   view.addEventListener("click", onClick);
   const stopMenu = onMenuChange(render);
+  const stopConfig = onConfigChange(render);
   return () => {
     stopMenu();
+    stopConfig();
     view.removeEventListener("click", onClick);
   };
 }

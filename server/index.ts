@@ -9,6 +9,7 @@ import hr from "./routes/hr.js";
 import menu from "./routes/menu.js";
 import customer from "./routes/customer.js";
 import orders from "./routes/orders.js";
+import ordering from "./routes/ordering.js";
 
 const app = express();
 const port = Number(process.env.PORT ?? process.env.API_PORT ?? 3001);
@@ -26,7 +27,7 @@ app.use((request, response, next) => {
   if (origin && allowedOrigins.has(origin.replace(/\/+$/, ""))) {
     response.setHeader("Access-Control-Allow-Origin", origin);
     response.setHeader("Access-Control-Allow-Methods", "GET, POST, PATCH, OPTIONS");
-    response.setHeader("Access-Control-Allow-Headers", "Content-Type");
+    response.setHeader("Access-Control-Allow-Headers", "Content-Type, X-Order-Token");
     response.setHeader("Access-Control-Allow-Credentials", "true");
     response.vary("Origin");
   }
@@ -80,6 +81,7 @@ app.use("/api/hr", hr);
 app.use("/api/menu", menu);
 app.use("/api/customer", customer);
 app.use("/api/orders", orders);
+app.use("/api/ordering", ordering);
 
 app.use((_error: unknown, _request: express.Request, response: express.Response, _next: express.NextFunction) => {
   console.error("Request failed");

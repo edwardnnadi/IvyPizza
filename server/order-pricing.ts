@@ -10,21 +10,23 @@ function readNonnegativeInteger(name: string, fallback: number, maximum = MAX_MI
   return value;
 }
 
-export const deliveryFeeMinor = readNonnegativeInteger("CHECKOUT_DELIVERY_FEE_MINOR", 150_000);
 export const taxBasisPoints = readNonnegativeInteger("CHECKOUT_TAX_BASIS_POINTS", 0, 100_000);
 
 export interface OrderTotals {
   subtotalMinor: number;
+  discountMinor: number;
   deliveryFeeMinor: number;
   taxMinor: number;
   totalMinor: number;
 }
 
-export function calculateOrderTotals(subtotalMinor: number): OrderTotals {
-  const taxMinor = Math.round((subtotalMinor * taxBasisPoints) / 10_000);
-  const totalMinor = subtotalMinor + deliveryFeeMinor + taxMinor;
+/** Tax applies to what the customer pays for food: the subtotal after any discount. */
+export function calculateOrderTotals(input: { subtotalMinor: number; discountMinor?: number; deliveryFeeMinor: number }): OrderTotals {
+  const discountMinor = Math.min(input.discountMinor ?? 0, input.subtotalMinor);
+  const taxMinor = Math.round(((input.subtotalMinor - discountMinor) * taxBasisPoints) / 10_000);
+  const totalMinor = input.subtotalMinor - discountMinor + input.deliveryFeeMinor + taxMinor;
   if (!Number.isSafeInteger(totalMinor) || totalMinor > MAX_MINOR_UNITS) {
     throw new Error("Order total exceeds the supported amount");
   }
-  return { subtotalMinor, deliveryFeeMinor, taxMinor, totalMinor };
+  return { subtotalMinor: input.subtotalMinor, discountMinor, deliveryFeeMinor: input.deliveryFeeMinor, taxMinor, totalMinor };
 }

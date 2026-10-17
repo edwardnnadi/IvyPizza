@@ -4,6 +4,7 @@ import { onBasketChange } from "./basket.js";
 import { mountHeader, renderHeader } from "./header.js";
 import { loadMenu, onMenuChange } from "./menu-data.js";
 import { onContextChange } from "./order-context.js";
+import { loadConfig, onConfigChange } from "./zones.js";
 import { onRouteChange, parseRoute, startRouter, type Route } from "./router.js";
 import { closeSheet, mountSheet } from "./sheets.js";
 import { hideToast, mountToast } from "./toast.js";
@@ -64,7 +65,7 @@ export function startStorefront(app: HTMLElement): void {
       case "builder": cleanup = renderBuilder(view, route.slug, route.editIndex); break;
       case "basket": cleanup = renderBasket(view); break;
       case "checkout": cleanup = renderCheckout(view); break;
-      case "confirmation": renderConfirmation(view, route.orderNumber); break;
+      case "confirmation": cleanup = renderConfirmation(view, route.orderNumber); break;
       case "tracker": cleanup = renderTracker(view, route.orderNumber); break;
       default: renderNotFound(view);
     }
@@ -77,11 +78,13 @@ export function startStorefront(app: HTMLElement): void {
   };
 
   onRouteChange(show);
-  for (const subscribe of [onContextChange, onBasketChange, onAccountChange, onMenuChange]) subscribe(renderHeader);
-  // Opening hours change while the page is open.
+  for (const subscribe of [onContextChange, onBasketChange, onAccountChange, onMenuChange, onConfigChange]) subscribe(renderHeader);
+  // Opening hours change while the page is open; slots and pauses come from the API.
   window.setInterval(renderHeader, 60_000);
+  window.setInterval(() => void loadConfig(), 5 * 60_000);
 
   startRouter();
   void loadMenu();
+  void loadConfig();
   show(parseRoute());
 }

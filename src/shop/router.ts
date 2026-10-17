@@ -5,7 +5,7 @@ export type Route =
   | { name: "basket" }
   | { name: "checkout" }
   | { name: "confirmation"; orderNumber: string }
-  | { name: "tracker"; orderNumber: string }
+  | { name: "tracker"; orderNumber: string | null }
   | { name: "notFound" };
 
 const listeners = new Set<(route: Route) => void>();
@@ -17,6 +17,7 @@ export function parseRoute(location: Location | URL = window.location): Route {
   if (path === "/menu") return { name: "menu", category: query.get("category") };
   if (path === "/basket") return { name: "basket" };
   if (path === "/checkout") return { name: "checkout" };
+  if (path === "/track") return { name: "tracker", orderNumber: null };
   const builder = /^\/menu\/([a-z0-9-]{1,100})$/i.exec(path);
   if (builder) {
     const edit = Number(query.get("edit"));

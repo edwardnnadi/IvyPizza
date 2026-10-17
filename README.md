@@ -120,7 +120,30 @@ No payment provider, production policy, or customer-facing sample prices are con
 - Checkout accepts recipient name, phone, delivery address, landmark, and delivery instructions. Customers can select a saved address or save the address with the order.
 - `POST /api/orders` reprices the basket against current available menu data inside a database transaction, stores immutable item and delivery snapshots, and returns a unique order number.
 - A customer-scoped idempotency key and request fingerprint make retries safe and reject reusing a key with changed order details.
-- `CHECKOUT_DELIVERY_FEE_MINOR` defaults to a development sample of NGN 1,500. `CHECKOUT_TAX_BASIS_POINTS` defaults to 0 and applies to the item subtotal. Confirm real fee and tax policy before launch.
+- Delivery fees and minimum orders are set per area in the `delivery_zones` table (see Ordering below). `CHECKOUT_TAX_BASIS_POINTS` defaults to 0 and applies to the subtotal after discounts. Confirm real fee and tax policy before launch.
 - Orders begin in `awaiting_acceptance` with payment `pending`; this phase does not collect payment. The manager review queue is Phase 5.
 - Migration `006_customer_checkout.sql` adds saved-address recipient fields, idempotency storage, and the order-number sequence.
 - Migration `007_better_auth_identity.sql` links Better Auth users to the existing stable application profiles without changing historic order ownership or staff roles.
+
+## Ordering: zones, builder, scheduling, guests and transfers
+
+The storefront follows `design-handoff/source/Ivy Pizza Ordering Prototype.dc.html`; the phased plan is `design-handoff/ORDERING-PLAN.md`. Migration `003_ordering.sql` adds:
+
+- **Kitchens** (`stores`): address, opening hours in business time, preparation time, slot capacity, and a pause switch with a message (`accepting_orders`, `paused_message`).
+- **Delivery areas** (`delivery_zones`): fee, minimum order and ETA per area. Areas with `delivers = FALSE` are listed as "not yet".
+- **Vouchers** (`vouchers`): percent (with a cap), fixed or free delivery, optionally delivery-only or pickup-only, with start and expiry dates.
+- **Pizza builder options**: crusts (cheese-stuffed needs Large or Family), sauces, and toppings with each pizza's recipe marked `is_default`. Size rows carry `price_multiplier_bp`. Burgers get extras and leave-outs. Sides, drinks and allergens are seeded.
+- **Orders**: pickup or delivery, kitchen and area, scheduled slot, voucher and discount, payment method, and guest contact details.
+
+Pricing rules live in `shared/pizza-rules.ts` and are used by both the API and the storefront, so displayed prices match charges: half toppings cost half, Extra counts double (one extra portion on recipe toppings), toppings and extra cheese scale with size, amounts round to ₦50, and a pizza takes up to 8 toppings.
+
+API:
+
+- `GET /api/ordering/config`: kitchens with live open or paused state, areas, today's and tomorrow's time slots, payment methods, and guest checkout.
+- `POST /api/menu/quote`: takes `mode`, `storeId`, `zoneId` and `voucherCode` alongside `items`; returns the discount, fee, minimum and any voucher error.
+- `POST /api/orders`: works signed in or as a guest (`GUEST_CHECKOUT`). Guests send `contact` and get a `guestToken` back; only its hash is stored. Delivery needs an area and a landmark and must reach the area minimum. ASAP orders need the kitchen open; scheduled orders must use a listed slot, and slot capacity holds under concurrent checkouts.
+- `GET /api/orders/:orderNumber`: the tracker view, for the signed-in owner, managers, or a guest sending the token (`?token=` or `X-Order-Token`).
+- `POST /api/orders/lookup`: order number plus phone. Failed attempts are throttled per address.
+- `POST /api/orders/:orderNumber/transfer-reported`: the customer says they've paid by transfer. Unreported transfers are cancelled after 30 minutes; the check runs whenever orders are read.
+
+Settings: `GUEST_CHECKOUT`, `TRANSFER_BANK_NAME` / `TRANSFER_ACCOUNT_NUMBER` / `TRANSFER_ACCOUNT_NAME` (bank transfer appears only when all three are set) and `KITCHEN_PHONE`. Card payments wait for a payment provider.

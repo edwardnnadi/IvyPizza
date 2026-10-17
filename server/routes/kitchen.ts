@@ -1,6 +1,7 @@
 import { Router } from "express";
 import { database, parseJson } from "../database.js";
 import { requireAnyRole, requireAuth } from "../auth.js";
+import { expireUnpaidTransfers } from "../order-view.js";
 
 const kitchen = Router();
 const staffAccess = [requireAuth, requireAnyRole("kitchen", "manager", "owner")];
@@ -9,8 +10,9 @@ const allowedKitchenStatuses = new Set(["preparing", "ready_for_delivery"]);
 
 kitchen.get("/orders", ...staffAccess, async (_request, response, next) => {
   try {
+    await expireUnpaidTransfers();
     const orders = await database.query<Record<string, unknown> & { id: string }>(
-      `SELECT id, order_number, fulfillment_status, created_at
+      `SELECT id, order_number, fulfillment_status, created_at, fulfilment_mode, scheduled_for
        FROM orders
        WHERE fulfillment_status IN ('accepted', 'preparing', 'ready_for_delivery')
        ORDER BY created_at ASC`,

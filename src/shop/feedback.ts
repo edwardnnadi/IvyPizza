@@ -34,7 +34,7 @@ export function announceAdded(item: MenuItem, quantity: number, allowUpsell = tr
       const id = target.closest<HTMLElement>("[data-upsell]")?.dataset.upsell;
       const drink = id ? findItem(id) : undefined;
       if (!drink) return;
-      const result = addLine(drink.id, [], 1);
+      const result = addLine({ menuItemId: drink.id, quantity: 1, optionIds: [] });
       if (result.ok) announceAdded(drink, 1, false);
       else showToast({ text: result.reason });
     },
@@ -43,7 +43,7 @@ export function announceAdded(item: MenuItem, quantity: number, allowUpsell = tr
 
 /** Adds an item that needs no choices straight from a card or upsell button. */
 export function quickAdd(item: MenuItem): void {
-  const result = addLine(item.id, [], 1);
+  const result = addLine({ menuItemId: item.id, quantity: 1, optionIds: [] });
   if (result.ok) announceAdded(item, 1);
   else showToast({ text: result.reason });
 }

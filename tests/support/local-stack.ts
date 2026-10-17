@@ -83,7 +83,8 @@ export async function startLocalStack(): Promise<LocalStack> {
         BETTER_AUTH_URL: apiUrl, BETTER_AUTH_SECRET: "local-test-only-better-auth-secret-0123456789",
         AUTH_TRUSTED_ORIGINS: apiUrl, AUTH_COOKIE_DOMAIN: "", AUTH_FRONTEND_URL: apiUrl, SMTP_HOST: "", PORT: String(apiPort), API_PORT: String(apiPort), APP_BASE_PATH: "",
         CORS_ORIGINS: "http://127.0.0.1:5173", BUSINESS_TIMEZONE: "Africa/Lagos",
-        CHECKOUT_DELIVERY_FEE_MINOR: "150000", CHECKOUT_TAX_BASIS_POINTS: "0",
+        CHECKOUT_TAX_BASIS_POINTS: "0", GUEST_CHECKOUT: "true", KITCHEN_PHONE: "",
+        TRANSFER_BANK_NAME: "Test Bank", TRANSFER_ACCOUNT_NUMBER: "0123456789", TRANSFER_ACCOUNT_NAME: "The Ivy Pizza Test",
       }, stdio: ["ignore", "pipe", "pipe"],
     });
     api.stdout?.on("data", (chunk) => { apiOutput += chunk; });
@@ -93,6 +94,9 @@ export async function startLocalStack(): Promise<LocalStack> {
       const exited = new Promise<void>((done) => api.once("exit", () => done())); api.kill(); await exited;
     });
     await waitForHealth(apiUrl, api, () => apiOutput);
+    // Open the kitchen around the clock so ASAP orders work whatever time the suite runs.
+    const setup = await mysql.createConnection(databaseUrl);
+    try { await setup.query("UPDATE stores SET opens_minute = 0, closes_minute = 1440"); } finally { await setup.end(); }
 
     return {
       apiUrl, databaseUrl,

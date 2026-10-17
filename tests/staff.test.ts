@@ -57,7 +57,8 @@ before(async () => {
     method: "POST",
     body: {
       idempotencyKey: randomUUID(),
-      delivery: { recipientName: "Test Diner", phone: "+234 801 000 0000", address: "1 Test Road, Lagos" },
+      zoneId: "wuse2",
+      delivery: { recipientName: "Test Diner", phone: "+234 801 000 0000", address: "1 Test Road, Wuse 2", landmark: "Near the test plaza" },
       items: [{ menuItemId: burger.id, quantity: 2, optionIds: [] }],
     },
   });

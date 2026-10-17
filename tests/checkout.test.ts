@@ -5,16 +5,19 @@ import { randomUUID } from "node:crypto";
 import { after, before, test } from "node:test";
 import mysql from "mysql2/promise";
 import { startLocalStack, type LocalStack } from "./support/local-stack.js";
+import { toppingCostMinor } from "../shared/pizza-rules.js";
 
-interface MenuOption { id: string; type: "size" | "extra"; available: boolean; priceDeltaMinor: number }
+interface MenuOption { id: string; type: string; available: boolean; priceDeltaMinor: number; isDefault: boolean; multiplierBp: number | null }
 interface MenuItem { id: string; category: string; priceMinor: number; options: MenuOption[] }
 type Json = Record<string, any>;
 
-const deliveryFeeMinor = 150_000;
+// Wuse 2 in the development zones (003_ordering.sql).
+const zoneId = "wuse2";
+const deliveryFeeMinor = 100_000;
 const delivery = {
   recipientName: "Test Customer",
   phone: "+234 801 234 5678",
-  address: "12 Test Street, Lekki, Lagos",
+  address: "12 Test Street, Wuse 2, Abuja",
   landmark: "Near the test bus stop",
   instructions: "Call on arrival",
 };
@@ -50,7 +53,7 @@ function placeOrder(cookie: string, body: Json) {
 }
 
 function orderBody(overrides: Json = {}): Json {
-  return { idempotencyKey: firstKey, delivery, items, saveAddress: true, addressLabel: "Home", ...overrides };
+  return { idempotencyKey: firstKey, zoneId, delivery, items, saveAddress: true, addressLabel: "Home", ...overrides };
 }
 
 before(async () => {
@@ -65,13 +68,15 @@ before(async () => {
   pizza = menu.find((item) => item.category === "Pizzas")!;
   burger = menu.find((item) => item.category === "Burgers")!;
   size = pizza.options.find((option) => option.available && option.type === "size" && option.priceDeltaMinor > 0)!;
-  extra = pizza.options.find((option) => option.available && option.type === "extra")!;
-  assert.ok(pizza && burger && size && extra, "seeded menu has a pizza with sizes and extras, and a burger");
+  // An added (non-recipe) topping sent the older way, in optionIds: whole pizza, normal amount.
+  extra = pizza.options.find((option) => option.available && option.type === "topping" && !option.isDefault)!;
+  assert.ok(pizza && burger && size && extra, "seeded menu has a pizza with sizes and toppings, and a burger");
   items = [
     { menuItemId: pizza.id, quantity: 2, optionIds: [size.id, extra.id] },
     { menuItemId: burger.id, quantity: 1, optionIds: [] },
   ];
-  expectedSubtotal = (pizza.priceMinor + size.priceDeltaMinor + extra.priceDeltaMinor) * 2 + burger.priceMinor;
+  const toppingMinor = toppingCostMinor({ unitMinor: extra.priceDeltaMinor, multiplierBp: size.multiplierBp!, inRecipe: false, side: "whole", amount: "normal" });
+  expectedSubtotal = (pizza.priceMinor + size.priceDeltaMinor + toppingMinor) * 2 + burger.priceMinor;
 });
 
 after(async () => {
@@ -138,9 +143,10 @@ test("verified customers can sign in and reset their password by email", async (
   assert.equal(signInAgain.status, 200);
 });
 
-test("orders require a valid confirmed sign-in", async () => {
-  assert.equal((await placeOrder("", {})).status, 401);
-  assert.equal((await placeOrder("better-auth.session_token=invalid", {})).status, 401);
+test("orders without a valid sign-in are treated as guest orders and need contact details", async () => {
+  const body = orderBody({ idempotencyKey: randomUUID(), saveAddress: false, delivery: { ...delivery, phone: "nope" } });
+  assert.equal((await placeOrder("", body)).status, 400);
+  assert.equal((await placeOrder("better-auth.session_token=invalid", body)).status, 400);
 });
 
 test("quote is priced by the server", async () => {
@@ -211,6 +217,9 @@ test("invalid checkouts are rejected without creating orders", async (t) => {
     ["missing checkout key", { idempotencyKey: undefined }],
     ["invalid phone number", { delivery: { ...delivery, phone: "call me" } }],
     ["empty address", { delivery: { ...delivery, address: "  " } }],
+    ["missing landmark", { delivery: { ...delivery, landmark: "" } }],
+    ["no delivery area", { zoneId: undefined }],
+    ["area we don't deliver to", { zoneId: "lugbe" }],
     ["empty basket", { items: [] }],
     ["quantity above 20", { items: [{ ...items[0], quantity: 21 }] }],
     ["unknown menu item", { items: [{ menuItemId: randomUUID(), quantity: 1 }] }],
@@ -273,7 +282,7 @@ test("database holds exactly the expected, internally consistent orders", async 
         (SELECT COUNT(*) FROM order_status_events e JOIN orders o ON o.id = e.order_id
           WHERE o.order_number = ?) AS first_events,
         (SELECT COUNT(*) FROM orders o
-          WHERE o.total_minor <> o.subtotal_minor + o.delivery_fee_minor + o.tax_minor
+          WHERE o.total_minor <> o.subtotal_minor - o.discount_minor + o.delivery_fee_minor + o.tax_minor
              OR o.subtotal_minor <> (SELECT SUM(line_total_minor) FROM order_items WHERE order_id = o.id)) AS inconsistent`,
       [customerAuthId, burstKey, firstOrder.orderNumber, firstOrder.orderNumber]);
     // First checkout, the burst, and the price-tampering checkout.

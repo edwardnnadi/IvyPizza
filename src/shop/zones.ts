@@ -1,18 +1,16 @@
-/**
- * Delivery areas, kitchens and opening hours.
- * Development samples from the ordering prototype: confirm real values before launch.
- * Phase 2 moves these into the database and serves them from the API.
- */
+import { apiUrl } from "../api.js";
+
+/** Kitchens, delivery areas, opening hours, time slots and payment options, served by /api/ordering/config. */
 
 export interface DeliveryArea {
   id: string;
+  storeId: string;
   name: string;
-  /** Minimum basket subtotal for delivery, in kobo. Enforced in the basket until the API enforces it. */
   minimumMinor: number;
-  eta: string;
-  /** Shown only once zone pricing is live; until then the API's flat delivery fee applies. */
   feeMinor: number;
-  outOfZone?: boolean;
+  /** "25–35" minutes */
+  eta: string;
+  outOfZone: boolean;
 }
 
 export interface Kitchen {
@@ -20,36 +18,105 @@ export interface Kitchen {
   name: string;
   short: string;
   address: string;
+  opensMinute: number;
+  closesMinute: number;
+  readyMinutes: { min: number; max: number };
+  acceptingOrders: boolean;
+  pausedMessage: string | null;
 }
 
-export const areas: DeliveryArea[] = [
-  { id: "wuse2", name: "Wuse 2", minimumMinor: 800_000, eta: "25–35", feeMinor: 100_000 },
-  { id: "maitama", name: "Maitama", minimumMinor: 1_000_000, eta: "30–40", feeMinor: 150_000 },
-  { id: "garki", name: "Garki", minimumMinor: 800_000, eta: "30–40", feeMinor: 120_000 },
-  { id: "asokoro", name: "Asokoro", minimumMinor: 1_200_000, eta: "35–45", feeMinor: 200_000 },
-  { id: "jabi", name: "Jabi", minimumMinor: 900_000, eta: "30–45", feeMinor: 150_000 },
-  { id: "gwarinpa", name: "Gwarinpa", minimumMinor: 1_200_000, eta: "40–55", feeMinor: 250_000 },
-  { id: "utako", name: "Utako", minimumMinor: 900_000, eta: "30–40", feeMinor: 150_000 },
-  { id: "lugbe", name: "Lugbe", minimumMinor: 0, eta: "", feeMinor: 0, outOfZone: true },
-];
+export interface Slot { time: string; at: string; available: boolean }
+export interface SlotDay { date: string; label: string; slots: Slot[] }
 
-export const kitchens: Kitchen[] = [
-  { id: "wuse", name: "Ivy Pizza Wuse 2", short: "Wuse 2 kitchen", address: "Aminu Kano Crescent, Wuse 2" },
-];
+interface ConfigResponse {
+  stores: Array<{ id: string; name: string; shortName: string; address: string; opensMinute: number; closesMinute: number; readyMinutes: { min: number; max: number }; acceptingOrders: boolean; pausedMessage: string | null }>;
+  zones: Array<{ id: string; storeId: string; name: string; delivers: boolean; feeMinor: number | null; minimumMinor: number | null; eta: { min: number; max: number } | null }>;
+  slots: Record<string, SlotDay[]>;
+  payments: { onDelivery: boolean; transfer: boolean; card: boolean };
+  guestCheckout: boolean;
+  kitchenPhone: string | null;
+}
 
-/** Kitchen phone shown on the tracker. Left empty until the real number is confirmed, which hides the line. */
-export const kitchenPhone: string = "";
+export type ConfigState = { status: "loading" } | { status: "error" } | { status: "live"; config: ConfigResponse };
 
-export const pickupReadyText = "15–20 min";
+let state: ConfigState = { status: "loading" };
+const listeners = new Set<() => void>();
+let inFlight: Promise<void> | null = null;
 
-const opening = { open: 11 * 60, close: 23 * 60 };
+export function configState(): ConfigState {
+  return state;
+}
+
+export function onConfigChange(listener: () => void): () => void {
+  listeners.add(listener);
+  return () => listeners.delete(listener);
+}
+
+export function loadConfig(): Promise<void> {
+  inFlight ??= (async () => {
+    try {
+      const response = await fetch(apiUrl("/api/ordering/config"), { cache: "no-store" });
+      if (!response.ok) throw new Error("Config unavailable");
+      state = { status: "live", config: await response.json() as ConfigResponse };
+    } catch {
+      // Keep the last good config if a refresh fails.
+      if (state.status !== "live") state = { status: "error" };
+    } finally {
+      inFlight = null;
+    }
+    for (const listener of listeners) listener();
+  })();
+  return inFlight;
+}
+
+function config(): ConfigResponse | null {
+  return state.status === "live" ? state.config : null;
+}
+
+export function areas(): DeliveryArea[] {
+  return (config()?.zones ?? []).map((zone) => ({
+    id: zone.id,
+    storeId: zone.storeId,
+    name: zone.name,
+    minimumMinor: zone.minimumMinor ?? 0,
+    feeMinor: zone.feeMinor ?? 0,
+    eta: zone.eta ? `${zone.eta.min}–${zone.eta.max}` : "",
+    outOfZone: !zone.delivers,
+  }));
+}
+
+export function kitchens(): Kitchen[] {
+  return (config()?.stores ?? []).map((store) => ({ ...store, short: store.shortName }));
+}
 
 export function findArea(id: string | null | undefined): DeliveryArea | undefined {
-  return areas.find((area) => area.id === id);
+  return areas().find((area) => area.id === id);
 }
 
-export function findKitchen(id: string | null | undefined): Kitchen {
-  return kitchens.find((kitchen) => kitchen.id === id) ?? kitchens[0]!;
+export function findKitchen(id: string | null | undefined): Kitchen | undefined {
+  return kitchens().find((kitchen) => kitchen.id === id) ?? kitchens()[0];
+}
+
+export function slotDays(kitchenId: string | null | undefined): SlotDay[] {
+  const kitchen = findKitchen(kitchenId);
+  return kitchen ? config()?.slots[kitchen.id] ?? [] : [];
+}
+
+export function payments(): ConfigResponse["payments"] {
+  return config()?.payments ?? { onDelivery: true, transfer: false, card: false };
+}
+
+export function guestCheckoutAllowed(): boolean {
+  return config()?.guestCheckout ?? false;
+}
+
+export function kitchenPhone(): string {
+  return config()?.kitchenPhone ?? "";
+}
+
+export function pickupReadyText(kitchenId?: string | null): string {
+  const kitchen = findKitchen(kitchenId);
+  return kitchen ? `${kitchen.readyMinutes.min}–${kitchen.readyMinutes.max} min` : "15–20 min";
 }
 
 /** Minutes since midnight in Abuja (WAT), whatever the visitor's own time zone. */
@@ -66,15 +133,38 @@ function clock(minutes: number): string {
 
 export interface KitchenHours {
   open: boolean;
-  /** "11:00" */
+  /** Open by the clock but not taking online orders right now. */
+  paused: boolean;
+  pausedMessage: string | null;
   opensAt: string;
   closesAt: string;
-  /** "today" or "tomorrow" — when the kitchen next opens while closed. */
   opensDay: "today" | "tomorrow";
 }
 
-export function kitchenHours(now = new Date()): KitchenHours {
+/** Uses the kitchen's hours from the config and the live clock, so the closed state appears on time. */
+export function kitchenHours(kitchenId?: string | null, now = new Date()): KitchenHours {
+  const kitchen = findKitchen(kitchenId);
+  const opensMinute = kitchen?.opensMinute ?? 660;
+  const closesMinute = kitchen?.closesMinute ?? 1380;
   const minutes = minutesInAbuja(now);
-  const open = minutes >= opening.open && minutes < opening.close;
-  return { open, opensAt: clock(opening.open), closesAt: clock(opening.close), opensDay: minutes < opening.open ? "today" : "tomorrow" };
+  const withinHours = minutes >= opensMinute && minutes < closesMinute;
+  const paused = !!kitchen && !kitchen.acceptingOrders;
+  return {
+    open: withinHours && !paused,
+    paused,
+    pausedMessage: kitchen?.pausedMessage ?? null,
+    opensAt: clock(opensMinute),
+    closesAt: clock(closesMinute),
+    opensDay: minutes < opensMinute ? "today" : "tomorrow",
+  };
+}
+
+/** "18:30–18:40" in Abuja time, `eta` minutes ("25–35") after `from`. */
+export function arrivalWindow(from: Date, eta: { min: number; max: number }): string {
+  const format = new Intl.DateTimeFormat("en-NG", { timeZone: "Africa/Lagos", hour: "2-digit", minute: "2-digit", hourCycle: "h23" });
+  return `${format.format(new Date(from.getTime() + eta.min * 60_000))}–${format.format(new Date(from.getTime() + eta.max * 60_000))}`;
+}
+
+export function abujaClock(date: Date): string {
+  return new Intl.DateTimeFormat("en-NG", { timeZone: "Africa/Lagos", hour: "2-digit", minute: "2-digit", hourCycle: "h23" }).format(date);
 }

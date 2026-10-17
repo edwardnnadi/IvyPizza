@@ -1,11 +1,23 @@
 import { itemArt } from "../art.js";
-import { features } from "../features.js";
 import { esc, money } from "../format.js";
 import { quickAdd } from "../feedback.js";
-import { categories, getMenu, isOrderable, itemKind, loadMenu, menuItems, onMenuChange, type MenuItem } from "../menu-data.js";
+import { allergenList, categories, getMenu, isOrderable, itemKind, loadMenu, menuItems, onMenuChange, type MenuItem } from "../menu-data.js";
+import { setVoucherCode } from "../basket.js";
+import { showToast } from "../toast.js";
 import { areaLabel, getContext, onContextChange } from "../order-context.js";
 import { navigate } from "../router.js";
-import { openAreaSheet, openItemSheet } from "../sheets.js";
+import { openAllergenSheet, openAreaSheet, openItemSheet } from "../sheets.js";
+
+const allergenStorageKey = "ivy-pizza-hidden-allergens-v1";
+
+function readHiddenAllergens(): Set<string> {
+  try {
+    const value: unknown = JSON.parse(sessionStorage.getItem(allergenStorageKey) ?? "[]");
+    return new Set(Array.isArray(value) ? value.filter((entry): entry is string => typeof entry === "string") : []);
+  } catch {
+    return new Set();
+  }
+}
 
 function card(item: MenuItem, index: number): string {
   const orderable = isOrderable(item);
@@ -25,6 +37,7 @@ function card(item: MenuItem, index: number): string {
         <h3>${esc(item.name)}</h3>
         ${orderable ? "" : `<span class="badge">${item.priceMinor === null ? "Coming soon" : "Sold out today"}</span>`}
         <p>${esc(item.description)}</p>
+        ${item.allergens.length ? `<p style="font-size:12px;font-weight:700;color:var(--gold-ink)">Contains ${esc(item.allergens.join(", ").toLowerCase())}</p>` : ""}
         <div class="item-foot"><span class="price">${esc(price)}</span>${cta}</div>
       </div>
     </article>`;
@@ -33,6 +46,8 @@ function card(item: MenuItem, index: number): string {
 export function renderMenu(view: HTMLElement, initialCategory: string | null): () => void {
   let category = initialCategory && initialCategory !== "All" ? initialCategory : "All";
   let query = "";
+  let hiddenAllergens = readHiddenAllergens();
+  const visible = (item: MenuItem): boolean => !item.allergens.some((allergen) => hiddenAllergens.has(allergen));
 
   const listMarkup = (): string => {
     const menu = getMenu();
@@ -47,13 +62,18 @@ export function renderMenu(view: HTMLElement, initialCategory: string | null): (
       return `<div class="state-box"><h2>Nothing on the menu ${delivery && getContext().areaId ? `for ${esc(areaLabel().label)} ` : ""}yet</h2><p>The kitchen is updating today's menu. Please check back shortly.</p><div class="state-actions"><button class="btn btn-green" type="button" data-retry>Refresh</button></div></div>`;
     }
     const needle = query.trim().toLowerCase();
-    const groups = categories()
+    const matching = categories()
       .filter((name) => category === "All" || name === category)
       .map((name) => ({
         name,
         items: menuItems().filter((item) => item.category === name && (!needle || `${item.name} ${item.description}`.toLowerCase().includes(needle))),
-      }))
-      .filter((group) => group.items.length);
+      }));
+    const hiddenCount = matching.reduce((total, group) => total + group.items.filter((item) => !visible(item)).length, 0);
+    const groups = matching.map((group) => ({ ...group, items: group.items.filter(visible) })).filter((group) => group.items.length);
+    const hiddenNote = hiddenCount ? `<p class="muted" style="margin:0;font-size:14px">${hiddenCount === 1 ? "1 dish" : `${hiddenCount} dishes`} hidden by your allergen filter. <button class="link-btn" type="button" data-clear-allergens style="min-height:32px">Show all</button></p>` : "";
+    if (!groups.length && hiddenCount) {
+      return `<div class="state-box plain" role="status"><h2>Nothing to show</h2><p>Your allergen filter is hiding every dish here.</p><button class="btn btn-outline" type="button" data-clear-allergens>Clear the filter</button></div>`;
+    }
     if (!groups.length) {
       return `<div class="state-box plain" role="status"><h2>${needle ? `Nothing matches “${esc(query.trim())}”` : `No ${esc(category.toLowerCase())} right now`}</h2><p>${needle ? "Try a different word, like “suya”, “chicken” or “beef”." : "Check back soon, or browse the full menu."}</p><button class="btn btn-outline" type="button" data-reset>Show the full menu</button></div>`;
     }
@@ -62,7 +82,7 @@ export function renderMenu(view: HTMLElement, initialCategory: string | null): (
       <section class="menu-group" aria-labelledby="cat-${esc(group.name)}">
         <h2 id="cat-${esc(group.name)}">${esc(group.name)}</h2>
         <div class="menu-grid">${group.items.map((item) => card(item, index++)).join("")}</div>
-      </section>`).join("")}</div>`;
+      </section>`).join("")}${hiddenNote}</div>`;
   };
 
   const tabsMarkup = (): string => {
@@ -94,7 +114,7 @@ export function renderMenu(view: HTMLElement, initialCategory: string | null): (
             <input type="search" placeholder="Search the menu" aria-label="Search the menu" data-search autocomplete="off" />
             <button type="button" aria-label="Clear search" data-clear hidden>×</button>
           </div>
-          ${features.allergens ? `<button class="btn btn-outline btn-sm" type="button" data-allergens>Allergens</button>` : ""}
+          <button class="btn btn-outline btn-sm" type="button" data-allergens aria-haspopup="dialog">${hiddenAllergens.size ? `Allergens · ${hiddenAllergens.size}` : "Allergens"}</button>
         </div>
       </div>
       ${getContext().mode === "delivery" && !getContext().areaId ? `<p class="notice info" style="margin:16px 0 0;display:flex;flex-wrap:wrap;align-items:center;justify-content:space-between;gap:8px">Tell us your area to see delivery times and the minimum order.<button class="link-btn" type="button" data-choose-area>Choose your area</button></p>` : ""}
@@ -138,6 +158,8 @@ export function renderMenu(view: HTMLElement, initialCategory: string | null): (
       return;
     }
     if (target.closest("[data-retry]")) return void loadMenu(true);
+    if (target.closest("[data-clear-allergens]")) return setHidden(new Set());
+    if (target.closest("[data-allergens]")) return openAllergenSheet(menuItems(), hiddenAllergens, allergenList, setHidden);
     if (target.closest("[data-choose-area]")) return openAreaSheet({ mode: "delivery", then: () => navigate("/menu", { replace: true }) });
     const add = target.closest<HTMLElement>("[data-add]");
     if (add) {
@@ -152,6 +174,26 @@ export function renderMenu(view: HTMLElement, initialCategory: string | null): (
     }
   };
   view.addEventListener("click", onClick);
+
+  function setHidden(next: Set<string>): void {
+    hiddenAllergens = next;
+    try {
+      sessionStorage.setItem(allergenStorageKey, JSON.stringify([...next]));
+    } catch {
+      // The filter still applies for this page.
+    }
+    const button = view.querySelector<HTMLElement>("[data-allergens]");
+    if (button) button.textContent = next.size ? `Allergens · ${next.size}` : "Allergens";
+    view.querySelector("[data-menu-list]")!.innerHTML = listMarkup();
+  }
+
+  // Deals link here with ?voucher=CODE; the basket applies it and the quote confirms it.
+  const voucher = new URLSearchParams(window.location.search).get("voucher");
+  if (voucher && /^[A-Z0-9]{2,30}$/i.test(voucher)) {
+    setVoucherCode(voucher);
+    window.history.replaceState({}, "", category === "All" ? "/menu" : `/menu?category=${encodeURIComponent(category)}`);
+    showToast({ text: `${voucher.toUpperCase()} will be applied to your basket.` });
+  }
 
   const stopMenu = onMenuChange(renderList);
   const stopContext = onContextChange(() => {

@@ -134,6 +134,8 @@ interface KitchenOrder {
   order_number: string;
   fulfillment_status: "accepted" | "preparing" | "ready_for_delivery";
   created_at: string;
+  fulfilment_mode?: "delivery" | "pickup";
+  scheduled_for?: string | null;
   items: KitchenOrderItem[];
 }
 
@@ -184,6 +186,17 @@ function initializeKitchenScreen(client: IvyAuth | null): void {
     return "Menu item";
   }
 
+  /** The cook's view of a line: each choice on its own chip, removals and half placements called out. */
+  function itemDetails(snapshot: unknown): { mods: string[]; instructions: string | null } {
+    if (typeof snapshot !== "object" || snapshot === null) return { mods: [], instructions: null };
+    const record = snapshot as { summary?: unknown; instructions?: unknown; options?: Array<{ name?: string; type?: string }> };
+    const mods = typeof record.summary === "string" && record.summary
+      ? record.summary.split(" · ")
+      // Orders placed before the builder kept only option names.
+      : (record.options ?? []).map((option) => option.name ?? "").filter(Boolean);
+    return { mods, instructions: typeof record.instructions === "string" && record.instructions ? record.instructions : null };
+  }
+
   function renderOrders(orders: KitchenOrder[]): void {
     orderGrid.replaceChildren();
     if (orders.length === 0) {
@@ -210,9 +223,13 @@ function initializeKitchenScreen(client: IvyAuth | null): void {
       const time = document.createElement("p");
       time.className = "kitchen-order-time";
       const createdAt = new Date(order.created_at);
+      const clock = (date: Date) => date.toLocaleTimeString("en-NG", { hour: "numeric", minute: "2-digit" });
+      const scheduled = order.scheduled_for ? new Date(order.scheduled_for) : null;
+      const mode = order.fulfilment_mode === "pickup" ? "Pickup" : "Delivery";
       time.textContent = Number.isNaN(createdAt.getTime())
         ? "Order time unavailable"
-        : `Placed ${createdAt.toLocaleTimeString("en-NG", { hour: "numeric", minute: "2-digit" })}`;
+        : `${mode} · ${scheduled ? `For ${clock(scheduled)}` : "ASAP"} · Placed ${clock(createdAt)}`;
+      if (scheduled) time.classList.add("is-scheduled");
       card.append(time);
 
       const itemList = document.createElement("ul");
@@ -222,9 +239,30 @@ function initializeKitchenScreen(client: IvyAuth | null): void {
         const quantity = document.createElement("span");
         quantity.className = "kitchen-item-quantity";
         quantity.textContent = `${item.quantity}×`;
-        const name = document.createElement("span");
+        const body = document.createElement("div");
+        const name = document.createElement("strong");
         name.textContent = itemName(item.item);
-        row.append(quantity, name);
+        body.append(name);
+        const { mods, instructions } = itemDetails(item.item);
+        if (mods.length) {
+          const chips = document.createElement("div");
+          chips.className = "kitchen-mods";
+          for (const mod of mods) {
+            const chip = document.createElement("span");
+            chip.textContent = mod.replace(/\s*\((left|right) half\)/i, (_match, side: string) => ` · ${side.toUpperCase()} HALF`);
+            if (/^No /.test(mod)) chip.classList.add("is-removal");
+            if (/(left|right) half/i.test(mod)) chip.classList.add("is-half");
+            chips.append(chip);
+          }
+          body.append(chips);
+        }
+        if (instructions) {
+          const note = document.createElement("p");
+          note.className = "kitchen-note";
+          note.textContent = `Note: ${instructions}`;
+          body.append(note);
+        }
+        row.append(quantity, body);
         itemList.append(row);
       }
       card.append(itemList);

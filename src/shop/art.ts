@@ -75,15 +75,71 @@ export function burgerArt(): string {
   return `<div class="burger-art" aria-hidden="true"><i class="bun-top"></i><i class="lettuce"></i><i class="cheese-slice"></i><i class="patty"></i><i class="bun-base"></i></div>`;
 }
 
+const drinkColours: Array<[RegExp, string]> = [[/chapman/i, "#c2412d"], [/zobo/i, "#7a1f3d"], [/cola|coke/i, "#3b1d12"], [/water/i, "#cfe6f2"]];
+
+export function drinkArt(name: string): string {
+  const colour = drinkColours.find(([pattern]) => pattern.test(name))?.[1] ?? "#e3a33b";
+  return `<div class="drink-art" aria-hidden="true"><i class="straw"></i><i class="glass" style="--drink:${colour}"></i></div>`;
+}
+
+export function sideArt(): string {
+  return `<div class="side-art" aria-hidden="true"><i class="sticks"></i><i class="cup"></i></div>`;
+}
+
 /** The art block used on menu cards, basket lines and sheets. */
 export function itemArt(item: MenuItem, extraClass = ""): string {
   if (itemKind(item) === "pizza" || /pizza/i.test(item.category)) return `<div class="art art-pizza ${extraClass}">${pizzaArt(item)}</div>`;
   if (/burger|wrap/i.test(`${item.category} ${item.name}`)) return `<div class="art art-burger ${extraClass}">${burgerArt()}</div>`;
+  if (/drink/i.test(item.category)) return `<div class="art art-burger ${extraClass}">${drinkArt(item.name)}</div>`;
+  if (/side/i.test(item.category)) return `<div class="art art-burger ${extraClass}">${sideArt()}</div>`;
   return `<div class="art art-other ${extraClass}" aria-hidden="true">${esc(item.name.charAt(0))}</div>`;
 }
 
 export function categoryArt(category: string, sample: MenuItem | undefined): string {
   if (/pizza/i.test(category)) return `<div class="art art-pizza">${pizzaArt(sample ?? { name: "Ivy Suya" }, { width: "120px" })}</div>`;
   if (/burger/i.test(category)) return `<div class="art art-burger">${burgerArt()}</div>`;
+  if (/drink/i.test(category)) return `<div class="art art-burger">${drinkArt(sample?.name ?? "Chapman")}</div>`;
+  if (/side/i.test(category)) return `<div class="art art-burger">${sideArt()}</div>`;
   return `<div class="art art-other" aria-hidden="true">${esc(category.charAt(0))}</div>`;
+}
+
+const toppingColours: Record<string, string> = {
+  chicken: "#e8c48e", suya: "#6e3318", pepperoni: "#b23a25", mince: "#5a3420", bacon: "#c4553b", mushrooms: "#b9a58a",
+  onions: "#8e3f73", peppers: "#3f8a3a", sweetcorn: "#f2c933", jalapenos: "#2a5e25", tomatoes: "#e0563a", olives: "#1f1f1f",
+};
+const sauceColours: Record<string, string> = { tomato: "#b8321f", ivy: "#c4602b", suya: "#8f3b1b", bbq: "#5b2618" };
+
+export function toppingColour(code: string | null): string {
+  return (code && toppingColours[code]) ?? "#d5a543";
+}
+
+export function sauceColour(code: string | null): string {
+  return (code && sauceColours[code]) ?? sauces.tomato;
+}
+
+/** The builder's live pizza: toppings land on the half they're placed on, more dots for Extra. */
+export function builtPizzaArt(input: {
+  toppings: Array<{ colour: string; side: "left" | "whole" | "right"; amount: "light" | "normal" | "extra" }>;
+  sauceColour: string;
+  sauceAmount: "light" | "normal" | "extra";
+  cheese: "none" | "light" | "normal" | "extra";
+  width: string;
+}): string {
+  let out = "";
+  input.toppings.forEach((topping, index) => {
+    const count = { light: 3, normal: 5, extra: 8 }[topping.amount];
+    (topping.side === "whole" ? ["left", "right"] : [topping.side]).forEach((side, sideIndex) => {
+      for (let i = 0; i < count; i += 1) {
+        const seed = (index + 1) * 97 + sideIndex * 31 + i * 7;
+        // Left half spans 90°–270° (screen coordinates), right half the rest.
+        const angle = (side === "left" ? Math.PI / 2 : -Math.PI / 2) + (0.08 + seeded(seed) * 0.84) * Math.PI;
+        const radius = 0.07 + Math.sqrt(seeded(seed + 3)) * 0.29;
+        out += `<i class="dot" style="left:${(50 + Math.cos(angle) * radius * 100).toFixed(1)}%;top:${(50 + Math.sin(angle) * radius * 100).toFixed(1)}%;background:${topping.colour}"></i>`;
+      }
+    });
+  });
+  const halves = input.toppings.some((topping) => topping.side !== "whole");
+  const sauceOpacity = { light: 0.55, normal: 0.85, extra: 1 }[input.sauceAmount];
+  const cheeseOpacity = { none: 0, light: 0.35, normal: 0.6, extra: 0.88 }[input.cheese];
+  return `<div class="pizza-art" style="width:${input.width}" aria-hidden="true"><span class="sauce" style="background:${input.sauceColour};opacity:${sauceOpacity}"></span><span class="cheese" style="opacity:${cheeseOpacity}"></span>${out}${halves ? `<span class="half-line"></span>` : ""}</div>`;
 }
