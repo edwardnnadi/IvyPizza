@@ -52,7 +52,7 @@ Not in the prototype (still in the wider brief, later phases): account pages, or
 - Decisions taken without answers to section 4: guest checkout **on** (`GUEST_CHECKOUT`), **one** kitchen (Wuse 2), sample zones, prices and vouchers from the prototype, and bank transfer shown only when `TRANSFER_*` details are set.
 - Landmark is required at checkout (brief), although the prototype marks it optional.
 - Food photos: drawn pizzas, burgers, sides and drinks stand in until real photography exists.
-- Not built yet: the manager screen that accepts orders and verifies transfers. Until then, orders wait in `awaiting_acceptance` and the kitchen queue only shows accepted orders.
+- Manager screen (`/manager`, `/api/manager`): managers and owners accept or reject new orders (a rejection needs a reason, which the customer sees) and mark bank transfers received. A transfer order can be accepted only once its payment is marked paid; rejecting a paid transfer sets `refund_pending`. Accepted orders go to the kitchen queue. Tests: `tests/manager.test.ts`.
 
 ## 3. Phases
 

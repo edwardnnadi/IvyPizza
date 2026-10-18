@@ -74,7 +74,7 @@ The Resend email option (`EMAIL_PROVIDER=resend` with `RESEND_API_KEY`) remains 
 - `server/auth.ts` provides role checks, order ownership/assignment checks, and a kitchen order projection that excludes delivery contact details.
 - Database constraints and triggers enforce valid statuses, order totals, delivered-order reviews, and append-only order status events.
 
-The identity and access foundation is in place. Phases 3 and 4 now provide menu browsing, basket, checkout, and the initial customer dashboard. Payments and manager order acceptance remain future work.
+The identity and access foundation is in place. Phases 3 and 4 now provide menu browsing, basket, checkout, and the initial customer dashboard. Managers accept orders and confirm bank transfers at `/manager`; card payments remain future work.
 
 ### First owner setup
 
@@ -145,5 +145,10 @@ API:
 - `GET /api/orders/:orderNumber`: the tracker view, for the signed-in owner, managers, or a guest sending the token (`?token=` or `X-Order-Token`).
 - `POST /api/orders/lookup`: order number plus phone. Failed attempts are throttled per address.
 - `POST /api/orders/:orderNumber/transfer-reported`: the customer says they've paid by transfer. Unreported transfers are cancelled after 30 minutes; the check runs whenever orders are read.
+- `GET /api/manager/orders` (manager or owner): orders in `awaiting_acceptance` plus those accepted today (business time), with items, mode, schedule, payment method and status, the transfer report and deadline, area or kitchen, and the recipient's name and phone.
+- `PATCH /api/manager/orders/:orderId/accept`: `awaiting_acceptance` → `accepted`, which puts the order on the kitchen queue. A transfer order is accepted only after its payment is marked paid.
+- `PATCH /api/manager/orders/:orderId/reject` with `{ reason }` (required, up to 500 characters): the customer's tracker shows the reason. A paid transfer moves to `refund_pending`.
+- `PATCH /api/manager/orders/:orderId/payment` with `{ status: "paid" }`: the manager confirms a pending transfer arrived. It adds a `payment_records` row and an event recording who confirmed it.
+- Every manager decision locks the order row and writes an append-only `order_status_events` row. Managers and owners use the `/manager` screen, which refreshes every 20 seconds.
 
 Settings: `GUEST_CHECKOUT`, `TRANSFER_BANK_NAME` / `TRANSFER_ACCOUNT_NUMBER` / `TRANSFER_ACCOUNT_NAME` (bank transfer appears only when all three are set) and `KITCHEN_PHONE`. Card payments wait for a payment provider.

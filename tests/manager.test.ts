@@ -16,6 +16,7 @@ let cookCookie: string;
 let customerCookie: string;
 let burgerId: string;
 let suyaId: string;
+let suyaRegularId: string;
 
 const delivery = { recipientName: "Ada Okafor", phone: "+234 803 123 4567", address: "14 Kumasi Crescent, Wuse 2, Abuja", landmark: "Opposite Banex Plaza", instructions: "Call at the gate" };
 
@@ -78,9 +79,11 @@ before(async () => {
     await sql("INSERT INTO user_roles (user_id, role_id) SELECT ?, id FROM roles WHERE name = ?", [userId, role]);
   }
 
-  const menu = (await call("/api/menu")).json.items as Array<{ id: string; slug: string }>;
+  const menu = (await call("/api/menu")).json.items as Array<{ id: string; slug: string; options: Array<{ id: string; type: string; code: string | null }> }>;
   burgerId = menu.find((item) => item.slug === "ivy-classic-burger")!.id;
-  suyaId = menu.find((item) => item.slug === "ivy-suya-pizza")!.id;
+  const suya = menu.find((item) => item.slug === "ivy-suya-pizza")!;
+  suyaId = suya.id;
+  suyaRegularId = suya.options.find((option) => option.type === "size" && option.code === "regular")!.id;
 });
 
 after(async () => {
@@ -103,7 +106,7 @@ test("only managers and owners can use the manager API", async () => {
 test("new orders are listed with what the manager needs to decide", async () => {
   const pickup = await placeOrder({
     zoneId: undefined, delivery: undefined, mode: "pickup", storeId: "wuse", contact: { phone: "0805 555 0101" },
-    items: [{ menuItemId: suyaId, quantity: 1, optionIds: [], instructions: "Cut into squares" }],
+    items: [{ menuItemId: suyaId, quantity: 1, optionIds: [suyaRegularId], instructions: "Cut into squares" }],
   });
   const delivered = await placeOrder();
   const orders = await managerOrders();
@@ -126,7 +129,7 @@ test("new orders are listed with what the manager needs to decide", async () => 
   assert.equal(pickupRow.address, null);
   assert.equal(pickupRow.recipient.phone, "0805 555 0101");
   assert.equal(pickupRow.items[0].instructions, "Cut into squares");
-  assert.match(pickupRow.items[0].summary, /Suya/);
+  assert.match(pickupRow.items[0].summary, /Regular/);
 });
 
 test("accepting an order sends it to the kitchen and records who accepted it", async () => {
