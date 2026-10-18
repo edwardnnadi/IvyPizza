@@ -152,3 +152,43 @@ API:
 - Every manager decision locks the order row and writes an append-only `order_status_events` row. Managers and owners use the `/manager` screen, which refreshes every 20 seconds.
 
 Settings: `GUEST_CHECKOUT`, `TRANSFER_BANK_NAME` / `TRANSFER_ACCOUNT_NUMBER` / `TRANSFER_ACCOUNT_NAME` (bank transfer appears only when all three are set) and `KITCHEN_PHONE`. Card payments wait for a payment provider.
+
+## Testing the app locally
+
+`npm run local` starts everything you need with one command: MariaDB in Docker (the container `ivy-pizza-local`, data kept between runs), the API, and the web app at http://127.0.0.1:5173. It seeds a verified test account for every role and opens the kitchen around the clock (`npm run local -- --real-hours` keeps 11:00–23:00). Emails are not sent; read them at http://127.0.0.1:5173/__dev/outbox, links included. `npm run local:reset` wipes the local database and `npm run local:down` stops it. Requires Docker Desktop, and ports 3001 and 5173 must be free.
+
+Test accounts (local database only), all with the password `ivy-local-pass-2026`:
+
+| Account | Role | Screen |
+|---|---|---|
+| `customer@ivy.test` | customer | Storefront, `/account` |
+| `manager@ivy.test` | manager | `/manager` (accept, dispatch), `/owner` |
+| `kitchen@ivy.test` | kitchen | `/kitchen` |
+| `rider@ivy.test` | rider | `/rider` (use a phone-sized window) |
+| `owner@ivy.test` | owner | `/owner`, `/manager`, `/hr` |
+| `hr@ivy.test` | hr | `/hr` |
+
+Customer flow: choose Delivery and an area, build a pizza, add a burger, check out signed in or as a guest, pay on delivery or by bank transfer, then follow the tracker. Also try a voucher (`IVY10`, `FREEDEL`, expired `SUMMER25`), a scheduled order (Later), pickup, sign-up with email confirmation (the link is in the outbox), the account page (addresses, reorder, rating) and the help form.
+
+Ordering flow (use a second browser profile or a private window for staff, so the customer stays signed in):
+
+1. `/manager`: accept the order. For bank transfer, mark the transfer received first.
+2. `/kitchen`: Start preparing, then Mark ready.
+3. `/manager`: assign a rider (any time after accepting). For pickup, use Mark collected.
+4. `/rider`: Picked up, then Delivered, recording cash or POS for pay-on-delivery orders, or Report a problem. A reported problem goes back to the manager to retry or cancel.
+5. The customer's tracker updates on its own; the outbox shows each customer email.
+6. `/owner`: today's sales, service times, ratings and open help requests.
+
+Use the kitchen's **Sold out (86)** panel to mark items or toppings unavailable; customers see the change straight away.
+
+## Operations: dispatch, riders, kitchen display, accounts and reports
+
+Migration `004_operations.sql` adds default saved addresses, approximate area centres for "Use my location", and help requests.
+
+- **Manager** (`/api/manager`): besides accepting, rejecting and confirming transfers, `GET /riders`, `POST /orders/:id/assign` (one active rider per order), `PATCH /orders/:id/collected` (pickup; pay-at-counter becomes paid), `PATCH /orders/:id/retry` (delivery problem back out), `PATCH /orders/:id/cancel` with a reason (paid orders move to `refund_pending`).
+- **Rider** (`/api/rider`): `GET /deliveries`, `PATCH /orders/:id/out`, `PATCH /orders/:id/delivered` (pay-on-delivery orders need `collected: "cash" | "pos"` and are recorded as paid), `PATCH /orders/:id/exception` with a reason. Riders only see and change their own deliveries.
+- **Kitchen** (`/api/kitchen`): the queue also lists orders cancelled mid-preparation for 30 minutes so cooks stop; `GET /menu`, `PATCH /menu/items/:id` and `PATCH /menu/ingredients` mark items and toppings sold out.
+- **Customer** (`/api/customer`): profile, address add, edit, set default and delete, order history with refund and review status, `GET /orders/:number/reorder` (exact lines for orders placed after this change), `POST /orders/:number/review` (delivered orders only).
+- **Help** (`/api/support`): anyone can send a help request; managers and owners read and close them.
+- **Owner reports** (`GET /api/owner/report?days=1|7|30`): revenue, average order, delivery and pickup mix, prep and delivery times, late deliveries, refunds, ratings, sales by day and hour, top items and areas.
+- **Order emails** (orders mailbox): order placed, ready to collect, out for delivery, delivered (with a rating request), rejected and cancelled. They are skipped quietly when the orders mailbox isn't configured. `EMAIL_PROVIDER=log` keeps them in the dev outbox instead (local testing only).

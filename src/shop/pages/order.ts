@@ -185,6 +185,10 @@ export function renderTracker(view: HTMLElement, initialNumber: string | null): 
   let timer: number | undefined;
   let stopped = false;
   let countdownTimer: number | undefined;
+  // Rating a delivered order (signed-in customers only; reviews belong to an account).
+  let stars = 0;
+  let ratingState: "idle" | "sending" | "sent" | "error" = "idle";
+  let ratingError = "";
 
   const help = (): string => {
     const phone = order?.kitchenPhone ?? kitchenPhone();
@@ -245,6 +249,15 @@ export function renderTracker(view: HTMLElement, initialNumber: string | null): 
           <div class="sum-total"><span>${current.paymentStatus === "paid" ? "Paid" : current.paymentMethod === "transfer" ? "Bank transfer" : current.mode === "pickup" ? "Pay at the counter" : "Pay on delivery"}</span><span>${esc(money(current.totalMinor, current.currency))}</span></div>
           <p class="muted" style="margin:0;font-size:14px">${current.mode === "pickup" ? `Collect from ${esc(current.store?.name ?? "the kitchen")}, ${esc(current.store?.address ?? "")}` : `Delivering to ${esc(current.area ?? "")}`}</p>
         </div>
+        ${current.fulfillmentStatus === "delivered" && currentSession() && !orderToken(current.orderNumber) ? (ratingState === "sent"
+          ? `<p class="notice ok" role="status" style="margin:16px 0 0">Thanks for rating your order. It helps the kitchen get every order right.</p>`
+          : `<form class="panel acct-rating" data-rate-form novalidate style="margin-top:16px;border-top:1px solid var(--line)">
+              <p style="margin:0 0 8px;font-weight:800">How was it?</p>
+              <div class="stars" role="radiogroup" aria-label="Rating">${[1, 2, 3, 4, 5].map((value) => `<button type="button" role="radio" aria-checked="${value === stars}" aria-label="${value} star${value > 1 ? "s" : ""}" data-star="${value}" class="${value <= stars ? "on" : ""}">★</button>`).join("")}</div>
+              <div class="field" style="margin-top:10px"><label for="tr-review">Anything to tell the kitchen? <span class="opt-tag">(optional)</span></label><textarea id="tr-review" name="body" maxlength="1000"></textarea></div>
+              ${ratingError ? `<p class="field-error" role="alert">${esc(ratingError)}</p>` : ""}
+              <button class="btn btn-gold btn-sm" type="submit" style="margin-top:10px" ${ratingState === "sending" ? "disabled" : ""}>Send rating</button>
+            </form>`) : ""}
         ${terminal.has(current.fulfillmentStatus) ? "" : `<p class="muted" style="margin:16px 0 0;font-size:13px">This page updates by itself.</p>`}
         ${help()}
       </section>`;
@@ -300,6 +313,17 @@ export function renderTracker(view: HTMLElement, initialNumber: string | null): 
   const onClick = async (event: Event): Promise<void> => {
     const target = event.target as HTMLElement;
     if (target.closest("[data-sign-in]")) openAccount("signin", "Sign in to follow your order.");
+    const star = target.closest<HTMLElement>("[data-star]");
+    if (star) {
+      const body = view.querySelector<HTMLTextAreaElement>("#tr-review")?.value ?? "";
+      stars = Number(star.dataset.star);
+      ratingError = "";
+      render();
+      const textarea = view.querySelector<HTMLTextAreaElement>("#tr-review");
+      if (textarea) textarea.value = body;
+      view.querySelector<HTMLElement>(`[data-star="${stars}"]`)?.focus();
+      return;
+    }
     if (target.closest("[data-retry]")) {
       status = "loading";
       render();
@@ -327,6 +351,28 @@ export function renderTracker(view: HTMLElement, initialNumber: string | null): 
   };
 
   const onSubmit = (event: Event): void => {
+    const rateForm = (event.target as HTMLElement).closest<HTMLFormElement>("[data-rate-form]");
+    if (rateForm && orderNumber) {
+      event.preventDefault();
+      if (!stars) {
+        ratingError = "Choose from 1 to 5 stars.";
+        return render();
+      }
+      ratingState = "sending";
+      const body = String(new FormData(rateForm).get("body") ?? "");
+      void fetch(apiUrl(`/api/customer/orders/${encodeURIComponent(orderNumber)}/review`), { method: "POST", credentials: "include", headers: { "Content-Type": "application/json" }, body: JSON.stringify({ rating: stars, body }) })
+        .then(async (response) => {
+          if (!response.ok) throw new Error(((await response.json().catch(() => ({}))) as { error?: string }).error ?? "We couldn't save your rating.");
+          ratingState = "sent";
+          ratingError = "";
+        })
+        .catch((error: unknown) => {
+          ratingState = "error";
+          ratingError = error instanceof Error ? error.message : "We couldn't save your rating.";
+        })
+        .finally(render);
+      return;
+    }
     const form = (event.target as HTMLElement).closest<HTMLFormElement>("[data-lookup]");
     if (!form) return;
     event.preventDefault();

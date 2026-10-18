@@ -13,6 +13,8 @@ export default defineConfig(({ mode }) => {
       proxy: {
         // Anchored so the `/api.ts` source module is not proxied along with API calls.
         "^/api/": "http://127.0.0.1:3001",
+        // Local testing: the emails the API would have sent (EMAIL_PROVIDER=log).
+        "^/__dev/": "http://127.0.0.1:3001",
       },
     },
     build: {

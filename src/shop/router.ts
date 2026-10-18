@@ -6,6 +6,9 @@ export type Route =
   | { name: "checkout" }
   | { name: "confirmation"; orderNumber: string }
   | { name: "tracker"; orderNumber: string | null }
+  | { name: "auth"; page: "signin" | "signup" | "verify" | "forgot" | "reset" }
+  | { name: "account"; tab: string | null }
+  | { name: "help" }
   | { name: "notFound" };
 
 const listeners = new Set<(route: Route) => void>();
@@ -18,6 +21,13 @@ export function parseRoute(location: Location | URL = window.location): Route {
   if (path === "/basket") return { name: "basket" };
   if (path === "/checkout") return { name: "checkout" };
   if (path === "/track") return { name: "tracker", orderNumber: null };
+  if (path === "/signin") return { name: "auth", page: "signin" };
+  if (path === "/signup") return { name: "auth", page: "signup" };
+  if (path === "/verify-email") return { name: "auth", page: "verify" };
+  if (path === "/forgot-password") return { name: "auth", page: "forgot" };
+  if (path === "/reset-password") return { name: "auth", page: "reset" };
+  if (path === "/account") return { name: "account", tab: query.get("tab") };
+  if (path === "/help") return { name: "help" };
   const builder = /^\/menu\/([a-z0-9-]{1,100})$/i.exec(path);
   if (builder) {
     const edit = Number(query.get("edit"));
@@ -50,7 +60,7 @@ function emit(): void {
 }
 
 /** Paths that belong to other apps on this origin and need a full page load. */
-const externalPaths = /^\/(kitchen|hr|manager|api)(\/|$)/;
+const externalPaths = /^\/(kitchen|hr|manager|rider|owner|api|__dev)(\/|$)/;
 
 export function startRouter(): void {
   window.addEventListener("popstate", emit);

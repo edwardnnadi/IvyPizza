@@ -4,7 +4,7 @@ import { itemArt } from "./art.js";
 import { isOrderable, optionsOf, unitPriceMinor, type MenuItem } from "./menu-data.js";
 import { activeKitchenId, getContext, isLocated, setContext, whenLabel, type OrderMode } from "./order-context.js";
 import { subtotalMinor } from "./pricing.js";
-import { areas, configState, findArea, findKitchen, kitchenHours, kitchens, loadConfig, pickupReadyText, slotDays } from "./zones.js";
+import { areaForPoint, areas, configState, findArea, findKitchen, kitchenHours, kitchens, loadConfig, pickupReadyText, slotDays } from "./zones.js";
 import { showToast } from "./toast.js";
 import { announceAdded } from "./feedback.js";
 import { maxInstructionsLength } from "../../shared/pizza-rules.js";
@@ -64,6 +64,7 @@ interface AreaSheetOptions {
 export function openAreaSheet(options: AreaSheetOptions = {}): void {
   let mode: OrderMode = options.mode ?? getContext().mode;
   let query = "";
+  let locate: { state: "idle" | "busy" | "done"; message: string } = { state: "idle", message: "" };
 
   const listMarkup = (): string => {
     const notice = configNotice();
@@ -80,6 +81,7 @@ export function openAreaSheet(options: AreaSheetOptions = {}): void {
     }
     const needle = query.trim().toLowerCase();
     const matches = areas().filter((area) => !needle || area.name.toLowerCase().includes(needle));
+    const located = locate.message ? `<p class="notice ${locate.state === "busy" ? "info" : "warn"}" role="status" style="margin:0 0 10px">${esc(locate.message)}</p>` : "";
     const none = matches.length === 0
       ? `<div class="notice info" style="text-align:center;padding:22px;margin-bottom:8px">
           <p style="margin:0 0 6px;font-weight:800;color:var(--ink)">We don't deliver to “${esc(query.trim())}” yet</p>
@@ -87,7 +89,7 @@ export function openAreaSheet(options: AreaSheetOptions = {}): void {
           <button class="btn btn-green btn-sm" type="button" data-mode-set="pickup" style="margin-top:14px">See pickup kitchens</button>
         </div>`
       : "";
-    return `${none}<div class="choice-list">${matches.map((area) => {
+    return `${located}${none}<div class="choice-list">${matches.map((area) => {
       const on = getContext().mode === "delivery" && getContext().areaId === area.id;
       const sub = area.outOfZone ? "Outside our delivery zone for now" : `${money(area.feeMinor)} delivery · ${money(area.minimumMinor)} minimum`;
       return `<button class="choice" type="button" data-area="${esc(area.id)}" aria-pressed="${on}" ${area.outOfZone ? "disabled" : ""}>
@@ -106,6 +108,7 @@ export function openAreaSheet(options: AreaSheetOptions = {}): void {
           <button type="button" data-mode-set="pickup" aria-pressed="${!delivery}">Pickup</button>
         </div>
         ${delivery ? `<input class="sheet-search" type="search" placeholder="Search your area, e.g. Maitama" aria-label="Search areas" value="${esc(query)}" data-area-search data-autofocus />` : ""}
+        ${delivery && "geolocation" in navigator ? `<button class="locate-btn" type="button" data-locate ${locate.state === "busy" ? "disabled" : ""}>${locate.state === "busy" ? "Finding you…" : "Use my location"}</button>` : ""}
       </div>
       <div class="sheet-body" data-area-list aria-live="polite">${listMarkup()}</div>`, { label: delivery ? "Choose your delivery area" : "Choose a pickup kitchen" });
   };
@@ -120,6 +123,24 @@ export function openAreaSheet(options: AreaSheetOptions = {}): void {
   dialog.onclick = (event) => {
     const target = event.target as HTMLElement;
     if (target.closest("[data-close]")) return closeSheet();
+    if (target.closest("[data-locate]")) {
+      locate = { state: "busy", message: "Finding your location…" };
+      render();
+      navigator.geolocation.getCurrentPosition((position) => {
+        const match = areaForPoint(position.coords.latitude, position.coords.longitude);
+        if (match && !match.area.outOfZone) {
+          locate = { state: "done", message: "" };
+          requestLocation({ mode: "delivery", areaId: match.area.id }, options.then);
+          return;
+        }
+        locate = { state: "done", message: match ? `You look to be in ${match.area.name}, where we don't deliver yet. You can order for pickup instead.` : "You're outside our delivery areas for now. Pick the nearest area, or order for pickup." };
+        if (dialog.open) render();
+      }, (error) => {
+        locate = { state: "done", message: error.code === error.PERMISSION_DENIED ? "Location is switched off for this site. Pick your area from the list instead." : "We couldn't find your location. Pick your area from the list instead." };
+        if (dialog.open) render();
+      }, { enableHighAccuracy: false, timeout: 10_000, maximumAge: 300_000 });
+      return;
+    }
     if (target.closest("[data-reload-config]")) {
       void loadConfig().then(() => dialog.open && render());
       return;

@@ -33,6 +33,7 @@ ordering.get("/config", async (_request, response, next) => {
         feeMinor: zone.feeMinor,
         minimumMinor: zone.minimumMinor,
         eta: zone.etaMin && zone.etaMax ? { min: zone.etaMin, max: zone.etaMax } : null,
+        center: zone.centerLat !== null && zone.centerLng !== null ? { lat: zone.centerLat, lng: zone.centerLng, radiusKm: zone.radiusKm ?? 3 } : null,
       })),
       slots,
       payments: { onDelivery: true, transfer: transferDetails() !== null, card: false },

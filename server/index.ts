@@ -2,7 +2,7 @@ import express from "express";
 import { toNodeHandler } from "better-auth/node";
 import { database, runMigrations } from "./database.js";
 import { auth, runBetterAuthMigrations } from "./better-auth.js";
-import { takeTestEmail } from "./email.js";
+import { devOutboxEmails, mailboxes, takeTestEmail, usingDevOutbox, type Mailbox } from "./email.js";
 import { requireAuth } from "./auth.js";
 import kitchen from "./routes/kitchen.js";
 import hr from "./routes/hr.js";
@@ -11,6 +11,9 @@ import customer from "./routes/customer.js";
 import orders from "./routes/orders.js";
 import ordering from "./routes/ordering.js";
 import manager from "./routes/manager.js";
+import rider from "./routes/rider.js";
+import support from "./routes/support.js";
+import owner from "./routes/owner.js";
 
 const app = express();
 const port = Number(process.env.PORT ?? process.env.API_PORT ?? 3001);
@@ -49,7 +52,23 @@ if (appBasePath) {
 app.all("/api/auth/*splat", toNodeHandler(auth));
 
 if (process.env.NODE_ENV === "test") {
-  app.get("/__test/emails", (_request, response) => response.json({ email: takeTestEmail() ?? null }));
+  app.get("/__test/emails", (request, response) => {
+    const wanted = typeof request.query.mailbox === "string" && mailboxes.includes(request.query.mailbox as Mailbox) ? [request.query.mailbox as Mailbox] : undefined;
+    response.json({ email: takeTestEmail(wanted) ?? null });
+  });
+}
+
+if (usingDevOutbox()) {
+  // Local testing: read the emails the app would have sent, with working links.
+  app.get("/__dev/outbox", (_request, response) => {
+    const escape = (value: string) => value.replace(/[&<>"']/g, (character) => ({ "&": "&amp;", "<": "&lt;", ">": "&gt;", "\"": "&quot;", "'": "&#39;" })[character]!);
+    const items = devOutboxEmails().map((email) => `<article style="border:1px solid #ddd;border-radius:8px;padding:16px;margin:0 0 14px;background:#fff">
+      <p style="margin:0 0 6px;color:#555;font-size:13px">${escape(new Date(email.sentAt).toLocaleString("en-GB"))} · ${escape(email.mailbox)} → <strong>${escape(email.to)}</strong></p>
+      <h2 style="margin:0 0 10px;font-size:18px">${escape(email.subject)}</h2><div>${email.html}</div></article>`).join("");
+    response.set("Cache-Control", "no-store").type("html").send(`<!doctype html><meta charset="utf-8"><meta name="viewport" content="width=device-width, initial-scale=1"><title>Dev outbox</title>
+      <body style="margin:0;padding:24px;background:#f7f3ea;font-family:system-ui,sans-serif;color:#122019"><h1 style="margin:0 0 6px">Dev outbox</h1>
+      <p style="margin:0 0 20px;color:#555">Emails the app would have sent (newest first, last 50). Local testing only: EMAIL_PROVIDER=log.</p>${items || "<p>No emails yet.</p>"}</body>`);
+  });
 }
 
 app.use(express.json({ limit: "32kb" }));
@@ -84,6 +103,9 @@ app.use("/api/customer", customer);
 app.use("/api/orders", orders);
 app.use("/api/ordering", ordering);
 app.use("/api/manager", manager);
+app.use("/api/rider", rider);
+app.use("/api/support", support);
+app.use("/api/owner", owner);
 
 app.use((_error: unknown, _request: express.Request, response: express.Response, _next: express.NextFunction) => {
   console.error("Request failed");

@@ -1,4 +1,4 @@
-import { currentProfile, currentSession, openAccount } from "./account.js";
+import { currentProfile, currentSession } from "./account.js";
 import { itemCount } from "./basket.js";
 import { esc, money } from "./format.js";
 import { activeKitchenId, areaLabel, getContext, setContext, whenLabel } from "./order-context.js";
@@ -14,7 +14,6 @@ export function mountHeader(element: HTMLElement): void {
     const target = event.target as HTMLElement;
     const action = target.closest<HTMLElement>("[data-hdr]")?.dataset.hdr;
     if (!action) return;
-    if (action === "account") openAccount();
     if (action === "area") openAreaSheet();
     if (action === "when") openScheduleSheet();
     if (action === "delivery") {
@@ -45,7 +44,7 @@ export function renderHeader(): void {
     <div class="hdr-top"><div class="wrap">
       <a class="brand" href="/" aria-label="The Ivy Pizza, home">THE IVY <span>PIZZA</span></a>
       <div class="hdr-spacer"></div>
-      <button class="account-btn" type="button" data-hdr="account">${esc(accountLabel)}</button>
+      <a class="account-btn" href="${currentSession() ? "/account" : `/signin?next=${encodeURIComponent(window.location.pathname + window.location.search)}`}">${esc(accountLabel)}</a>
       <a class="basket-btn" href="/basket" aria-label="Basket, ${count} ${count === 1 ? "item" : "items"}">
         <span class="basket-label">Basket</span>
         <span class="basket-count">${count ? `${count} · ${esc(money(subtotalMinor()))}` : "0"}</span>

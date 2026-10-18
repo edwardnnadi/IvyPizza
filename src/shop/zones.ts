@@ -11,6 +11,7 @@ export interface DeliveryArea {
   /** "25–35" minutes */
   eta: string;
   outOfZone: boolean;
+  center: { lat: number; lng: number; radiusKm: number } | null;
 }
 
 export interface Kitchen {
@@ -30,7 +31,7 @@ export interface SlotDay { date: string; label: string; slots: Slot[] }
 
 interface ConfigResponse {
   stores: Array<{ id: string; name: string; shortName: string; address: string; opensMinute: number; closesMinute: number; readyMinutes: { min: number; max: number }; acceptingOrders: boolean; pausedMessage: string | null }>;
-  zones: Array<{ id: string; storeId: string; name: string; delivers: boolean; feeMinor: number | null; minimumMinor: number | null; eta: { min: number; max: number } | null }>;
+  zones: Array<{ id: string; storeId: string; name: string; delivers: boolean; feeMinor: number | null; minimumMinor: number | null; eta: { min: number; max: number } | null; center: { lat: number; lng: number; radiusKm: number } | null }>;
   slots: Record<string, SlotDay[]>;
   payments: { onDelivery: boolean; transfer: boolean; card: boolean };
   guestCheckout: boolean;
@@ -82,7 +83,24 @@ export function areas(): DeliveryArea[] {
     feeMinor: zone.feeMinor ?? 0,
     eta: zone.eta ? `${zone.eta.min}–${zone.eta.max}` : "",
     outOfZone: !zone.delivers,
+    center: zone.center,
   }));
+}
+
+/** The delivery area containing a point, using each area's centre and radius (development approximations). */
+export function areaForPoint(lat: number, lng: number): { area: DeliveryArea; distanceKm: number } | null {
+  const toRadians = (degrees: number) => (degrees * Math.PI) / 180;
+  let best: { area: DeliveryArea; distanceKm: number } | null = null;
+  for (const area of areas()) {
+    if (!area.center) continue;
+    const dLat = toRadians(area.center.lat - lat);
+    const dLng = toRadians(area.center.lng - lng);
+    const h = Math.sin(dLat / 2) ** 2 + Math.cos(toRadians(lat)) * Math.cos(toRadians(area.center.lat)) * Math.sin(dLng / 2) ** 2;
+    const distanceKm = 6371 * 2 * Math.asin(Math.sqrt(h));
+    // A little slack, because the radius is approximate.
+    if (distanceKm <= area.center.radiusKm * 1.3 && (!best || distanceKm < best.distanceKm)) best = { area, distanceKm };
+  }
+  return best;
 }
 
 export function kitchens(): Kitchen[] {

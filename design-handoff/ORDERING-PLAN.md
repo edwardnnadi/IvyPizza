@@ -54,6 +54,15 @@ Not in the prototype (still in the wider brief, later phases): account pages, or
 - Food photos: drawn pizzas, burgers, sides and drinks stand in until real photography exists.
 - Manager screen (`/manager`, `/api/manager`): managers and owners accept or reject new orders (a rejection needs a reason, which the customer sees) and mark bank transfers received. A transfer order can be accepted only once its payment is marked paid; rejecting a paid transfer sets `refund_pending`. Accepted orders go to the kitchen queue. Tests: `tests/manager.test.ts`.
 
+## Status (2026-10-18, later)
+
+The wider brief is built on top of Phases 0–3:
+- **Staff:** manager dispatch (assign riders, collect, retry, cancel), a rider app, a kitchen display with lanes, timers, sound and sold-out toggles, and an owner dashboard with help requests.
+- **Customer:** full-page sign in, sign up with live password rules, email confirmation (with resend and an expired-link state), forgot and reset password; an account page with addresses, order history, reorder and ratings; a help page; "Use my location"; error, offline and session-expired states.
+- **Emails:** order emails for each step, with a dev outbox for local testing.
+- **Testing:** `npm run local` starts the whole stack with a test account for every role (see README, "Testing the app locally").
+- **Still open:** card payments (Phase 4, waiting on the provider), a map pin in the area picker (needs a map provider), a rider call relay, real food photography, the HR screen redesign, and real zones, prices and coordinates.
+
 ## 3. Phases
 
 Each phase ships on its own and leaves the site working. Phases 1 and 2 can run side by side (frontend vs backend), both branch from `main`.

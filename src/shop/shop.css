@@ -506,3 +506,44 @@ a.dashboard-order:hover{border-color:var(--green)}
   .closed-banner .wrap{flex-wrap:nowrap;padding-top:6px;padding-bottom:6px;font-size:13px;line-height:1.35}
   .closed-banner .btn{flex:none;min-height:36px!important;padding:0 12px;font-size:12px}
 }
+
+/* ---------- Account, auth and help pages ---------- */
+.shop .account-btn{display:inline-flex;align-items:center;color:var(--cream)!important;text-decoration:none}
+.auth-page{display:grid;place-items:start center;padding:40px var(--gutter) 80px}
+.auth-card{width:min(100%,460px);padding:clamp(22px,4vw,36px);border-top:5px solid var(--gold)}
+.pw-wrap{position:relative}
+.pw-wrap input{padding-right:72px!important}
+.pw-toggle{position:absolute;right:6px;top:50%;transform:translateY(-50%);min-height:36px;padding:0 10px;border:0;border-radius:6px;background:var(--sand);color:var(--green);font-weight:800;font-size:13px;cursor:pointer}
+.pw-rules{list-style:none;margin:-4px 0 0;padding:0;display:grid;gap:4px;font-size:13px;color:var(--muted)}
+.pw-rules li span{display:inline-block;width:14px;color:var(--faint)}
+.pw-rules li.ok{color:var(--ok);font-weight:700}
+.pw-rules li.ok span{color:var(--ok)}
+.account-page,.help-page{padding-top:28px;padding-bottom:80px}
+.acct-head{display:flex;flex-wrap:wrap;justify-content:space-between;align-items:flex-end;gap:12px}
+.acct-order-top{display:flex;flex-wrap:wrap;justify-content:space-between;align-items:center;gap:8px}
+.acct-badges{display:flex;flex-wrap:wrap;gap:6px}
+.acct-badge{padding:4px 10px;border-radius:999px;background:var(--sand);color:var(--ink);font-size:12px;font-weight:800}
+.acct-badge.status-delivered,.acct-badge.pay-paid{background:var(--ok-bg);color:var(--green)}
+.acct-badge.status-out_for_delivery,.acct-badge.status-preparing,.acct-badge.status-accepted,.acct-badge.status-ready_for_delivery{background:#fff1cf;color:var(--gold-ink)}
+.acct-badge.status-rejected,.acct-badge.status-cancelled,.acct-badge.status-delivery_exception,.acct-badge.pay-failed{background:var(--error-bg);color:var(--error-ink)}
+.acct-badge.pay-refund_pending,.acct-badge.pay-refunded,.acct-badge.pay-partially_refunded{background:#e6eef8;color:#1f4a7a}
+.acct-items{margin:10px 0;color:var(--muted);font-size:14px;line-height:1.5}
+.acct-order-foot{display:flex;flex-wrap:wrap;justify-content:space-between;align-items:center;gap:10px}
+.acct-actions{display:flex;flex-wrap:wrap;gap:8px;align-items:center}
+.acct-review{margin:12px 0 0;font-size:14px}
+.acct-review span{color:var(--gold-ink);letter-spacing:2px}
+.acct-rating{margin-top:14px;padding-top:14px;border-top:1px solid var(--line)}
+.stars{display:flex;gap:4px}
+.stars button{width:46px;height:46px;border:0;border-radius:8px;background:var(--sand);color:#c9bfa8;font-size:26px;cursor:pointer}
+.stars button.on{background:#fff1cf;color:var(--gold-ink)}
+.help-grid{display:grid;grid-template-columns:repeat(auto-fit,minmax(min(100%,380px),1fr));gap:clamp(18px,3vw,36px);align-items:start;margin-top:18px}
+.faq{padding:0}
+.faq summary{padding:16px 18px;font-weight:800;cursor:pointer;list-style:none}
+.faq summary::-webkit-details-marker{display:none}
+.faq summary::after{content:"+";float:right;color:var(--green);font-size:20px;line-height:1}
+.faq[open] summary::after{content:"–"}
+.faq p{margin:0;padding:0 18px 16px;color:var(--muted);line-height:1.6}
+.field select{width:100%;min-height:48px;padding:0 12px;border:1.5px solid var(--border);border-radius:6px;background:#fff;color:var(--ink);font-size:16px}
+.offline-banner{position:sticky;top:var(--header-h);z-index:25;padding:10px var(--gutter);background:var(--warn-bg);color:var(--warn-ink);font-weight:700;font-size:14px;text-align:center}
+.locate-btn{display:flex;align-items:center;justify-content:center;gap:8px;width:100%;min-height:46px;margin-top:10px;border:1.5px dashed var(--green);border-radius:999px;background:transparent;color:var(--green);font-weight:800;font-size:14px;cursor:pointer}
+.locate-btn:disabled{opacity:.6;cursor:wait}

@@ -7,47 +7,6 @@ if (!app) throw new Error("Application root was not found.");
 
 const clientAuth = ivyAuth;
 
-const kitchenMarkup = `
-  <div class="kitchen-app">
-    <header class="kitchen-topbar">
-      <a class="brand kitchen-brand" href="/">THE IVY <span>PIZZA</span></a>
-      <div class="kitchen-top-actions">
-        <span class="kitchen-staff-name" id="kitchen-staff-name"></span>
-        <button class="kitchen-top-button" id="kitchen-refresh" type="button" hidden>Refresh queue</button>
-        <button class="kitchen-top-button" id="kitchen-sign-out" type="button" hidden>Sign out</button>
-      </div>
-    </header>
-    <main class="kitchen-shell">
-      <section class="kitchen-login" id="kitchen-login">
-        <div class="eyebrow dark">Staff access</div>
-        <h1>Kitchen screen</h1>
-        <p>Sign in with your Ivy staff account to view active orders.</p>
-        <form id="kitchen-login-form">
-          <label class="form-field">Email address<input name="email" type="email" autocomplete="username" required maxlength="254" /></label>
-          <label class="form-field">Password<input name="password" type="password" autocomplete="current-password" required minlength="8" maxlength="128" /></label>
-          <button class="btn account-submit" id="kitchen-login-submit" type="submit">Sign in</button>
-        </form>
-        <p class="kitchen-message" id="kitchen-login-message" role="status" aria-live="polite"></p>
-        <p class="auth-config-note" id="kitchen-config-note" hidden>Staff sign-in is not configured. Please contact the site administrator.</p>
-      </section>
-      <section class="kitchen-denied" id="kitchen-denied" hidden>
-        <div class="eyebrow dark">Staff access</div>
-        <h1>Kitchen access required</h1>
-        <p>This account does not have a kitchen, manager, or owner role. Ask an owner to grant the correct staff role.</p>
-        <button class="btn" id="kitchen-denied-sign-out" type="button">Sign out</button>
-      </section>
-      <section class="kitchen-board" id="kitchen-board" hidden>
-        <div class="kitchen-board-heading">
-          <div><div class="eyebrow dark">The Ivy Pizza</div><h1>Kitchen queue</h1><p>Active orders, oldest first. The queue refreshes automatically.</p></div>
-          <div class="kitchen-live"><span></span> Live queue</div>
-        </div>
-        <p class="kitchen-message" id="kitchen-queue-message" role="status" aria-live="polite"></p>
-        <div class="kitchen-order-grid" id="kitchen-order-grid" aria-live="polite"></div>
-      </section>
-    </main>
-  </div>
-`;
-
 const hrMarkup = `
   <div class="kitchen-app">
     <header class="kitchen-topbar">
@@ -147,20 +106,23 @@ const managerMarkup = `
         <p class="kitchen-message" id="manager-message" role="status" aria-live="polite"></p>
         <h2 class="manager-section-title">Waiting for a decision <span id="manager-waiting-count"></span></h2>
         <div class="kitchen-order-grid" id="manager-waiting" aria-live="polite"></div>
-        <h2 class="manager-section-title">Accepted today <span id="manager-accepted-count"></span></h2>
+        <h2 class="manager-section-title">In progress and delivered today <span id="manager-accepted-count"></span></h2>
         <div class="kitchen-order-grid" id="manager-accepted"></div>
       </section>
     </main>
   </div>
 `;
 
-const isKitchenScreen = window.location.pathname.replace(/\/+$/, "") === "/kitchen";
+const staffPath = window.location.pathname.replace(/\/+$/, "");
 const isHrScreen = window.location.pathname.replace(/\/+$/, "") === "/hr";
 const isManagerScreen = window.location.pathname.replace(/\/+$/, "") === "/manager";
 
-if (isKitchenScreen) {
-  app.innerHTML = kitchenMarkup;
-  initializeKitchenScreen(clientAuth);
+if (staffPath === "/kitchen") {
+  void import("./staff/kitchen.js").then(({ startKitchenScreen }) => startKitchenScreen(app));
+} else if (staffPath === "/rider") {
+  void import("./staff/rider.js").then(({ startRiderScreen }) => startRiderScreen(app));
+} else if (staffPath === "/owner") {
+  void import("./staff/owner.js").then(({ startOwnerScreen }) => startOwnerScreen(app));
 } else if (isHrScreen) {
   app.innerHTML = hrMarkup;
   initializeHrScreen(clientAuth);
@@ -172,315 +134,9 @@ if (isKitchenScreen) {
   void import("./shop/app.js").then(({ startStorefront }) => startStorefront(app));
 }
 
-interface KitchenOrderItem {
-  item: unknown;
-  quantity: number;
-}
-
-interface KitchenOrder {
-  id: string;
-  order_number: string;
-  fulfillment_status: "accepted" | "preparing" | "ready_for_delivery";
-  created_at: string;
-  fulfilment_mode?: "delivery" | "pickup";
-  scheduled_for?: string | null;
-  items: KitchenOrderItem[];
-}
-
 interface KitchenProfile {
   displayName: string;
   roles: string[];
-}
-
-function initializeKitchenScreen(client: IvyAuth | null): void {
-  const loginPanel = document.querySelector<HTMLElement>("#kitchen-login")!;
-  const loginForm = document.querySelector<HTMLFormElement>("#kitchen-login-form")!;
-  const loginMessage = document.querySelector<HTMLParagraphElement>("#kitchen-login-message")!;
-  const configNote = document.querySelector<HTMLParagraphElement>("#kitchen-config-note")!;
-  const deniedPanel = document.querySelector<HTMLElement>("#kitchen-denied")!;
-  const board = document.querySelector<HTMLElement>("#kitchen-board")!;
-  const queueMessage = document.querySelector<HTMLParagraphElement>("#kitchen-queue-message")!;
-  const orderGrid = document.querySelector<HTMLDivElement>("#kitchen-order-grid")!;
-  const refreshButton = document.querySelector<HTMLButtonElement>("#kitchen-refresh")!;
-  const signOutButton = document.querySelector<HTMLButtonElement>("#kitchen-sign-out")!;
-  const staffName = document.querySelector<HTMLSpanElement>("#kitchen-staff-name")!;
-  let currentSession: IvySession | null = null;
-  let refreshTimer: number | undefined;
-  let loadGeneration = 0;
-
-  function showLogin(message = ""): void {
-    loadGeneration += 1;
-    currentSession = null;
-    loginPanel.hidden = false;
-    deniedPanel.hidden = true;
-    board.hidden = true;
-    refreshButton.hidden = true;
-    signOutButton.hidden = true;
-    staffName.textContent = "";
-    loginMessage.textContent = message;
-  }
-
-  function clearOrders(): void {
-    orderGrid.replaceChildren();
-  }
-
-  function itemName(snapshot: unknown): string {
-    if (typeof snapshot === "string") return snapshot;
-    if (typeof snapshot !== "object" || snapshot === null || Array.isArray(snapshot)) return "Menu item";
-    const record = snapshot as Record<string, unknown>;
-    for (const key of ["name", "item_name", "title"]) {
-      if (typeof record[key] === "string" && record[key]) return record[key] as string;
-    }
-    return "Menu item";
-  }
-
-  /** The cook's view of a line: each choice on its own chip, removals and half placements called out. */
-  function itemDetails(snapshot: unknown): { mods: string[]; instructions: string | null } {
-    if (typeof snapshot !== "object" || snapshot === null) return { mods: [], instructions: null };
-    const record = snapshot as { summary?: unknown; instructions?: unknown; options?: Array<{ name?: string; type?: string }> };
-    const mods = typeof record.summary === "string" && record.summary
-      ? record.summary.split(" · ")
-      // Orders placed before the builder kept only option names.
-      : (record.options ?? []).map((option) => option.name ?? "").filter(Boolean);
-    return { mods, instructions: typeof record.instructions === "string" && record.instructions ? record.instructions : null };
-  }
-
-  function renderOrders(orders: KitchenOrder[]): void {
-    orderGrid.replaceChildren();
-    if (orders.length === 0) {
-      const empty = document.createElement("div");
-      empty.className = "kitchen-empty";
-      empty.innerHTML = '<div class="kitchen-empty-mark">✓</div><h2>All caught up</h2><p>New accepted orders will appear here.</p>';
-      orderGrid.append(empty);
-      return;
-    }
-
-    for (const order of orders) {
-      const card = document.createElement("article");
-      card.className = "kitchen-order-card";
-      const top = document.createElement("div");
-      top.className = "kitchen-order-top";
-      const number = document.createElement("h2");
-      number.textContent = order.order_number;
-      const status = document.createElement("span");
-      status.className = `kitchen-status status-${order.fulfillment_status}`;
-      status.textContent = order.fulfillment_status.replaceAll("_", " ");
-      top.append(number, status);
-      card.append(top);
-
-      const time = document.createElement("p");
-      time.className = "kitchen-order-time";
-      const createdAt = new Date(order.created_at);
-      const clock = (date: Date) => date.toLocaleTimeString("en-NG", { hour: "numeric", minute: "2-digit" });
-      const scheduled = order.scheduled_for ? new Date(order.scheduled_for) : null;
-      const mode = order.fulfilment_mode === "pickup" ? "Pickup" : "Delivery";
-      time.textContent = Number.isNaN(createdAt.getTime())
-        ? "Order time unavailable"
-        : `${mode} · ${scheduled ? `For ${clock(scheduled)}` : "ASAP"} · Placed ${clock(createdAt)}`;
-      if (scheduled) time.classList.add("is-scheduled");
-      card.append(time);
-
-      const itemList = document.createElement("ul");
-      itemList.className = "kitchen-items";
-      for (const item of order.items) {
-        const row = document.createElement("li");
-        const quantity = document.createElement("span");
-        quantity.className = "kitchen-item-quantity";
-        quantity.textContent = `${item.quantity}×`;
-        const body = document.createElement("div");
-        const name = document.createElement("strong");
-        name.textContent = itemName(item.item);
-        body.append(name);
-        const { mods, instructions } = itemDetails(item.item);
-        if (mods.length) {
-          const chips = document.createElement("div");
-          chips.className = "kitchen-mods";
-          for (const mod of mods) {
-            const chip = document.createElement("span");
-            chip.textContent = mod.replace(/\s*\((left|right) half\)/i, (_match, side: string) => ` · ${side.toUpperCase()} HALF`);
-            if (/^No /.test(mod)) chip.classList.add("is-removal");
-            if (/(left|right) half/i.test(mod)) chip.classList.add("is-half");
-            chips.append(chip);
-          }
-          body.append(chips);
-        }
-        if (instructions) {
-          const note = document.createElement("p");
-          note.className = "kitchen-note";
-          note.textContent = `Note: ${instructions}`;
-          body.append(note);
-        }
-        row.append(quantity, body);
-        itemList.append(row);
-      }
-      card.append(itemList);
-
-      if (order.fulfillment_status !== "ready_for_delivery") {
-        const action = document.createElement("button");
-        action.type = "button";
-        action.className = "btn kitchen-order-action";
-        action.textContent = order.fulfillment_status === "accepted" ? "Start preparing" : "Mark ready";
-        action.addEventListener("click", () => void advanceOrder(order, action));
-        card.append(action);
-      }
-      orderGrid.append(card);
-    }
-  }
-
-  async function fetchWithSession(url: string, init: RequestInit = {}): Promise<Response> {
-    if (!currentSession) throw new Error("Your session has ended. Please sign in again.");
-    const headers = new Headers(init.headers);
-
-    if (init.body) headers.set("Content-Type", "application/json");
-    return fetch(apiUrl(url), { ...init, headers, credentials: "include" });
-  }
-
-  async function refreshQueue(quiet = false): Promise<void> {
-    if (!currentSession) return;
-    if (!quiet) {
-      refreshButton.disabled = true;
-      queueMessage.textContent = "Refreshing orders…";
-    }
-    try {
-      const response = await fetchWithSession("/api/kitchen/orders");
-      if (!response.ok) {
-        if (response.status === 401) throw new Error("Your session expired. Sign in again to continue.");
-        throw new Error("Could not load orders. Try refreshing the queue.");
-      }
-      const result = (await response.json()) as { orders: KitchenOrder[] };
-      renderOrders(result.orders);
-      queueMessage.textContent = `Updated ${new Date().toLocaleTimeString("en-NG", { hour: "numeric", minute: "2-digit" })}`;
-    } catch (error) {
-      queueMessage.textContent = error instanceof Error ? error.message : "Could not load orders.";
-    } finally {
-      refreshButton.disabled = false;
-    }
-  }
-
-  async function advanceOrder(order: KitchenOrder, button: HTMLButtonElement): Promise<void> {
-    button.disabled = true;
-    button.textContent = "Saving…";
-    const nextStatus = order.fulfillment_status === "accepted" ? "preparing" : "ready_for_delivery";
-    try {
-      const response = await fetchWithSession(`/api/kitchen/orders/${encodeURIComponent(order.id)}/status`, {
-        method: "PATCH",
-        body: JSON.stringify({ status: nextStatus }),
-      });
-      if (!response.ok) {
-        const result = (await response.json().catch(() => ({}))) as { error?: string };
-        throw new Error(result.error ?? "Could not update this order.");
-      }
-      queueMessage.textContent = `${order.order_number} moved to ${nextStatus.replaceAll("_", " ")}.`;
-      await refreshQueue(true);
-    } catch (error) {
-      queueMessage.textContent = error instanceof Error ? error.message : "Could not update this order.";
-      button.disabled = false;
-      button.textContent = order.fulfillment_status === "accepted" ? "Start preparing" : "Mark ready";
-    }
-  }
-
-  async function loadStaffScreen(session: IvySession): Promise<void> {
-    const generation = ++loadGeneration;
-    currentSession = session;
-    loginMessage.textContent = "Checking staff access…";
-    try {
-      const response = await fetchWithSession("/api/me");
-      if (!response.ok) {
-        if (response.status === 401) throw new Error("Your session expired. Please sign in again.");
-        throw new Error("Could not verify this account. Please try again.");
-      }
-      const profile = (await response.json()) as KitchenProfile;
-      if (generation !== loadGeneration) return;
-      const permitted = profile.roles.some((role) => ["kitchen", "manager", "owner"].includes(role));
-      if (!permitted) {
-        loginPanel.hidden = true;
-        deniedPanel.hidden = false;
-        board.hidden = true;
-        refreshButton.hidden = true;
-        signOutButton.hidden = false;
-        staffName.textContent = profile.displayName;
-        return;
-      }
-
-      loginPanel.hidden = true;
-      deniedPanel.hidden = true;
-      board.hidden = false;
-      refreshButton.hidden = false;
-      signOutButton.hidden = false;
-      staffName.textContent = profile.displayName;
-      await refreshQueue();
-      if (refreshTimer) window.clearInterval(refreshTimer);
-      refreshTimer = window.setInterval(() => void refreshQueue(true), 15_000);
-    } catch (error) {
-      if (generation !== loadGeneration) return;
-      showLogin(error instanceof Error ? error.message : "Could not sign in.");
-    }
-  }
-
-  if (!client) {
-    configNote.hidden = false;
-    loginForm.querySelectorAll<HTMLInputElement | HTMLButtonElement>("input, button").forEach((element) => {
-      element.disabled = true;
-    });
-    return;
-  }
-  const authClient = client;
-
-  loginForm.addEventListener("submit", async (event) => {
-    event.preventDefault();
-    const submit = document.querySelector<HTMLButtonElement>("#kitchen-login-submit")!;
-    submit.disabled = true;
-    loginMessage.textContent = "Signing in…";
-    const formData = new FormData(loginForm);
-    try {
-      const { data, error } = await authClient.auth.signInWithPassword({
-        email: String(formData.get("email") ?? "").trim(),
-        password: String(formData.get("password") ?? ""),
-      });
-      if (error) throw error;
-      if (!data.session) throw new Error("Your email address must be confirmed before you can sign in.");
-      await loadStaffScreen(data.session);
-    } catch (error) {
-      loginMessage.textContent = error instanceof Error ? error.message : "Could not sign in.";
-    } finally {
-      submit.disabled = false;
-    }
-  });
-
-  async function signOut(): Promise<void> {
-    if (refreshTimer) window.clearInterval(refreshTimer);
-    refreshTimer = undefined;
-    const { error } = await authClient.auth.signOut();
-    if (error) {
-      queueMessage.textContent = "Could not sign out. Please try again.";
-      return;
-    }
-    clearOrders();
-    showLogin();
-  }
-
-  refreshButton.addEventListener("click", () => void refreshQueue());
-  signOutButton.addEventListener("click", () => void signOut());
-  document.querySelector<HTMLButtonElement>("#kitchen-denied-sign-out")!.addEventListener("click", () => void signOut());
-
-  void authClient.auth.getSession().then(({ data, error }) => {
-    if (error) {
-      showLogin("Could not restore your session. Please sign in again.");
-    } else if (data.session) {
-      void loadStaffScreen(data.session);
-    }
-  });
-
-  authClient.auth.onAuthStateChange((_event, session) => {
-    if (!session) {
-      if (refreshTimer) window.clearInterval(refreshTimer);
-      refreshTimer = undefined;
-      clearOrders();
-      showLogin();
-    } else {
-      currentSession = session;
-    }
-  });
 }
 
 interface HrStaffRecord {
@@ -745,6 +401,8 @@ interface ManagerOrder {
   landmark: string | null;
   deliveryInstructions: string | null;
   items: Array<{ name: string; summary: string; instructions: string | null; quantity: number }>;
+  rider: { id: string; name: string | null } | null;
+  statusReason: string | null;
 }
 
 function initializeManagerScreen(client: IvyAuth | null): void {
@@ -765,6 +423,7 @@ function initializeManagerScreen(client: IvyAuth | null): void {
   let currentSession: IvySession | null = null;
   let refreshTimer: number | undefined;
   let loadGeneration = 0;
+  let riders: Array<{ id: string; name: string; activeDeliveries: number }> = [];
   // While a decision is saving, polls skip re-rendering so the card is not swapped out mid-click.
   let busy = false;
   // A decision's confirmation stays on screen for one poll interval before "Updated …" replaces it.
@@ -863,8 +522,70 @@ function initializeManagerScreen(client: IvyAuth | null): void {
       actions.append(accept, button("Reject", "manager-reject", (target) => void decide(order, target, "reject")));
       card.append(actions);
       if (awaitingTransfer) card.append(element("p", "manager-hint", "Check the account for this amount and mark it received before accepting."));
+    } else {
+      card.append(dispatchControls(order));
     }
     return card;
+  }
+
+  /** Rider assignment, counter collection, retries and cancelling for orders already accepted. */
+  function dispatchControls(order: ManagerOrder): HTMLElement {
+    const box = element("div", "manager-dispatch");
+    const status = order.fulfillmentStatus;
+    if (status === "delivered") {
+      box.append(element("p", "manager-hint", order.mode === "pickup" ? "Collected." : `Delivered${order.rider?.name ? ` by ${order.rider.name}` : ""}.`));
+      return box;
+    }
+    if (status === "delivery_exception") {
+      box.append(element("p", "manager-problem", `Delivery problem: ${order.statusReason ?? "reported by the rider"}`));
+      box.append(button("Retry delivery", "btn manager-primary", (target) => void dispatch(order, target, "retry", "PATCH", {})));
+    }
+    if (order.mode === "delivery") {
+      const row = element("div", "manager-rider-row");
+      row.append(element("span", "", order.rider?.name ? `Rider: ${order.rider.name}` : "No rider yet"));
+      const select = element("select", "manager-rider-select");
+      select.setAttribute("aria-label", `Rider for ${order.orderNumber}`);
+      select.append(new Option(riders.length ? "Choose a rider" : "No riders on staff", ""));
+      for (const rider of riders) select.append(new Option(`${rider.name}${rider.activeDeliveries ? ` (${rider.activeDeliveries} active)` : ""}`, rider.id, false, rider.id === order.rider?.id));
+      const assign = button(order.rider ? "Reassign" : "Assign", "manager-reject", (target) => {
+        if (!select.value) return;
+        void dispatch(order, target, "assign", "POST", { riderId: select.value });
+      });
+      row.append(select, assign);
+      box.append(row);
+    }
+    if (status === "ready_for_delivery" && order.mode === "pickup") {
+      box.append(button("Mark collected", "btn manager-primary", (target) => void dispatch(order, target, "collected", "PATCH", {})));
+    }
+    box.append(button("Cancel order", "manager-reject", (target) => {
+      const reason = window.prompt(`Why are you cancelling ${order.orderNumber}? The customer sees this reason.`)?.trim();
+      if (reason) void dispatch(order, target, "cancel", "PATCH", { reason });
+    }));
+    return box;
+  }
+
+  async function dispatch(order: ManagerOrder, target: HTMLButtonElement, action: string, method: string, body: Record<string, unknown>): Promise<void> {
+    busy = true;
+    const label = target.textContent;
+    target.disabled = true;
+    target.textContent = "Saving…";
+    try {
+      const response = await fetchWithSession(`/api/manager/orders/${encodeURIComponent(order.id)}/${action}`, { method, body: JSON.stringify(body) });
+      const result = (await response.json().catch(() => ({}))) as { error?: string };
+      if (!response.ok) throw new Error(result.error ?? "Could not update this order.");
+      message.textContent = action === "assign" ? `Rider assigned to ${order.orderNumber}.`
+        : action === "collected" ? `${order.orderNumber} collected.`
+        : action === "retry" ? `${order.orderNumber} is back out for delivery.`
+        : `${order.orderNumber} cancelled.`;
+    } catch (error) {
+      message.textContent = error instanceof Error ? error.message : "Could not update this order.";
+      target.disabled = false;
+      target.textContent = label;
+    } finally {
+      busy = false;
+      noticeUntil = Date.now() + 20_000;
+    }
+    await refreshOrders(true);
   }
 
   function fill(grid: HTMLElement, orders: ManagerOrder[], emptyTitle: string, emptyText: string): void {
@@ -902,7 +623,8 @@ function initializeManagerScreen(client: IvyAuth | null): void {
       message.textContent = "Refreshing orders…";
     }
     try {
-      const response = await fetchWithSession("/api/manager/orders");
+      const [response, riderResponse] = await Promise.all([fetchWithSession("/api/manager/orders"), fetchWithSession("/api/manager/riders")]);
+      if (riderResponse.ok) riders = ((await riderResponse.json()) as { riders: typeof riders }).riders;
       if (!response.ok) {
         if (response.status === 401) throw new Error("Your session expired. Sign in again to continue.");
         if (response.status === 403) throw new Error("This account no longer has manager access.");

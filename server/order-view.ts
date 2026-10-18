@@ -2,6 +2,7 @@ import { createHash, timingSafeEqual } from "node:crypto";
 import type { Queryable } from "./database.js";
 import { database, parseJson } from "./database.js";
 import { transferDetails, kitchenPhone } from "./settings.js";
+import { queueOrderEmail } from "./order-emails.js";
 
 export function hashGuestToken(token: string): string {
   return createHash("sha256").update(token).digest("hex");
@@ -42,6 +43,7 @@ export async function expireUnpaidTransfers(): Promise<void> {
       );
     }
     await client.query("COMMIT");
+    for (const { id } of rows) queueOrderEmail(id, "cancelled");
   } catch (error) {
     await client.query("ROLLBACK").catch(() => undefined);
     throw error;

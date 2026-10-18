@@ -1,4 +1,6 @@
 import nodemailer, { type Transporter } from "nodemailer";
+import { mkdirSync, readFileSync, writeFileSync } from "node:fs";
+import { resolve } from "node:path";
 import { database } from "./database.js";
 
 // Each kind of email is sent from its own theivypizza.com mailbox, logged in with that
@@ -29,6 +31,16 @@ export interface SentTestEmail extends Email {
 }
 
 const testEmails: SentTestEmail[] = [];
+// EMAIL_PROVIDER=log keeps recent emails in memory for local testing (shown at /__dev/outbox) instead of sending them.
+// Kept in data/ (gitignored) so the outbox survives the API restarting while you edit code.
+const devOutboxFile = resolve(process.cwd(), "data/dev-outbox.json");
+const devOutbox: Array<SentTestEmail & { sentAt: string }> = (() => {
+  try {
+    return JSON.parse(readFileSync(devOutboxFile, "utf8")) as Array<SentTestEmail & { sentAt: string }>;
+  } catch {
+    return [];
+  }
+})();
 const emailProvider = (process.env.EMAIL_PROVIDER ?? "smtp").trim().toLowerCase();
 const smtpHost = process.env.SMTP_HOST;
 const smtpPort = Number(process.env.SMTP_PORT ?? 465);
@@ -74,6 +86,7 @@ export function checkEmailConfiguration(): void {
     if (!process.env.RESEND_API_KEY) throw new Error("RESEND_API_KEY is required when EMAIL_PROVIDER=resend");
     return;
   }
+  if (emailProvider === "log") throw new Error("EMAIL_PROVIDER=log is for local testing only");
   if (emailProvider !== "smtp") throw new Error(`Unsupported EMAIL_PROVIDER: ${emailProvider}`);
   for (const mailbox of requiredMailboxes) transporterFor(mailbox);
 }
@@ -101,6 +114,18 @@ export async function sendEmail(mailbox: Mailbox, email: Email): Promise<void> {
   const from = senderFor(mailbox);
   if (process.env.NODE_ENV === "test") {
     testEmails.push({ ...email, mailbox, from });
+    return;
+  }
+  if (emailProvider === "log") {
+    devOutbox.unshift({ ...email, mailbox, from, sentAt: new Date().toISOString() });
+    devOutbox.splice(50);
+    try {
+      mkdirSync(resolve(process.cwd(), "data"), { recursive: true });
+      writeFileSync(devOutboxFile, JSON.stringify(devOutbox));
+    } catch {
+      // The in-memory outbox still works for this run.
+    }
+    console.log(`[outbox] ${mailbox} email "${email.subject}" to ${email.to}`);
     return;
   }
   // Logged so delivery problems can be traced in the host's app log without exposing the full address.
@@ -141,6 +166,23 @@ export async function accountMailboxFor(authUserId: string): Promise<Mailbox> {
   return rowCount ? "staff" : "customers";
 }
 
-export function takeTestEmail(): SentTestEmail | undefined {
-  return testEmails.shift();
+/** The oldest queued test email, optionally only from some mailboxes (order emails are kept apart from account emails). */
+export function takeTestEmail(mailboxesWanted: readonly Mailbox[] = ["customers", "staff"]): SentTestEmail | undefined {
+  const index = testEmails.findIndex((email) => mailboxesWanted.includes(email.mailbox));
+  return index >= 0 ? testEmails.splice(index, 1)[0] : undefined;
+}
+
+export function devOutboxEmails(): ReadonlyArray<SentTestEmail & { sentAt: string }> {
+  return devOutbox;
+}
+
+export function usingDevOutbox(): boolean {
+  return emailProvider === "log" && process.env.NODE_ENV !== "production";
+}
+
+/** Whether order emails can be sent at all; without an orders mailbox they are skipped quietly. */
+export function orderEmailsEnabled(): boolean {
+  if (process.env.NODE_ENV === "test" || usingDevOutbox()) return true;
+  if (emailProvider === "resend") return !!process.env.RESEND_API_KEY;
+  return !!smtpHost && !!mailboxSetting("orders", "USER") && !!mailboxSetting("orders", "PASSWORD");
 }

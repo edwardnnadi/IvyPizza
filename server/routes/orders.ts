@@ -6,6 +6,7 @@ import { canonicalLine, MenuQuoteError, parseBasketInput, type BasketInputLine }
 import { parseCheckoutContext, priceCheckout, type CheckoutContext } from "../checkout.js";
 import { slotIsFull, transferWindowMinutes, validateSchedule } from "../ordering.js";
 import { guestCheckoutEnabled, transferDetails } from "../settings.js";
+import { queueOrderEmail } from "../order-emails.js";
 import {
   expireUnpaidTransfers, findOrderByNumber, guestTokenMatches, hashGuestToken, nationalPhone, trackingView, type OrderRow,
 } from "../order-view.js";
@@ -207,8 +208,10 @@ orders.post("/", optionalAuth, async (request, response, next) => {
     );
     const order = inserted.rows[0]!;
 
-    for (const line of priced.lines) {
+    for (const [index, line] of priced.lines.entries()) {
       const itemSnapshot = JSON.stringify({
+        // The customer's own choices, so "reorder" can rebuild the line.
+        input: lines[index],
         menuItemId: line.menuItemId,
         name: line.name,
         category: line.category,
@@ -230,12 +233,14 @@ orders.post("/", optionalAuth, async (request, response, next) => {
     );
     if (saveAddress && delivery) {
       await client.query(
-        `INSERT INTO customer_addresses (customer_id, label, recipient_name, phone, address, landmark, instructions)
-         VALUES (?, ?, ?, ?, ?, ?, ?)`,
-        [customerId, addressLabel, delivery.recipientName, delivery.phone, delivery.address, delivery.landmark, delivery.instructions],
+        // A customer's first saved address becomes their default.
+        `INSERT INTO customer_addresses (customer_id, label, recipient_name, phone, address, landmark, instructions, is_default)
+         SELECT ?, ?, ?, ?, ?, ?, ?, NOT EXISTS (SELECT 1 FROM customer_addresses WHERE customer_id = ?)`,
+        [customerId, addressLabel, delivery.recipientName, delivery.phone, delivery.address, delivery.landmark, delivery.instructions, customerId],
       );
     }
     await client.query("COMMIT");
+    queueOrderEmail(order.id, "placed");
     const transfer = paymentMethod === "transfer" ? transferDetails() : null;
     response.status(201).json({
       ...existingOrderResponse(order, false),

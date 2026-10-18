@@ -72,6 +72,9 @@ export interface Zone {
   minimumMinor: number | null;
   etaMin: number | null;
   etaMax: number | null;
+  centerLat: number | null;
+  centerLng: number | null;
+  radiusKm: number | null;
 }
 
 export async function loadStores(client: Queryable): Promise<Store[]> {
@@ -87,10 +90,12 @@ export async function loadStores(client: Queryable): Promise<Store[]> {
 export async function loadZones(client: Queryable): Promise<Zone[]> {
   const { rows } = await client.query<Record<string, unknown>>(
     `SELECT id, store_id AS storeId, name, delivers, fee_minor AS feeMinor, minimum_minor AS minimumMinor,
-            eta_min AS etaMin, eta_max AS etaMax
+            eta_min AS etaMin, eta_max AS etaMax, center_lat AS centerLat, center_lng AS centerLng, radius_km AS radiusKm
      FROM delivery_zones ORDER BY display_order, name`,
   );
-  return rows as unknown as Zone[];
+  // DECIMAL columns come back as strings.
+  const number = (value: unknown) => (value === null || value === undefined ? null : Number(value));
+  return rows.map((row) => ({ ...row, centerLat: number(row.centerLat), centerLng: number(row.centerLng), radiusKm: number(row.radiusKm) })) as unknown as Zone[];
 }
 
 export interface StoreHours {
