@@ -1,5 +1,5 @@
 import { currentSession, fetchDashboard, openAccount } from "../account.js";
-import { categoryArt, pizzaArt } from "../art.js";
+import { categoryArt, itemArt } from "../art.js";
 import { liveDeals } from "../deals.js";
 import { esc, money } from "../format.js";
 import { categories, getMenu, isOrderable, lowestPriceMinor, menuItems, onMenuChange, sizeOptions, sizeParts, type MenuItem } from "../menu-data.js";
@@ -26,7 +26,7 @@ function featureMarkup(): string {
     <section class="wrap land-section" aria-labelledby="feat-title">
       <div class="feature-frame">
         <div class="feature">
-          ${pizzaArt(item ?? { name: "Ivy Suya" }, { size: "family" })}
+          ${item ? itemArt(item, "feature-photo") : `<div class="pizza-art" aria-hidden="true"></div>`}
           <div class="feature-card">
             <span class="flag">Abuja favourite</span>
             <p class="label">Signature pizza</p>

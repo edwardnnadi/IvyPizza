@@ -1,5 +1,5 @@
 import { addLine, basketLines, replaceLine, type BasketLine } from "../basket.js";
-import { builtPizzaArt, sauceColour, toppingColour } from "../art.js";
+import { builtPizzaArt, itemArt, sauceColour, toppingColour } from "../art.js";
 import { esc, money } from "../format.js";
 import { announceAdded } from "../feedback.js";
 import {
@@ -121,10 +121,14 @@ export function renderBuilder(view: HTMLElement, slug: string, editIndex: number
           <div class="builder-vis">
             <p class="kicker">${size ? esc(`${sizeParts(size.name).label} · ${sizeParts(size.name).detail}`) : ""}</p>
             <h1 tabindex="-1" data-page-heading>${esc(current.name)}</h1>
-            ${builtPizzaArt({
-              toppings: toppings.map((topping) => ({ colour: toppingColour(byId.get(topping.optionId)?.code ?? null), side: topping.side, amount: topping.amount })),
-              sauceColour: sauceColour(sauce?.code ?? null), sauceAmount, cheese, width: `min(100%, ${sizeScale(sizeIndex, sizes.length)})`,
-            })}
+            ${itemArt(current, "builder-product-photo")}
+            <div class="builder-custom-preview">
+              <p class="builder-preview-label">Live build preview</p>
+              ${builtPizzaArt({
+                toppings: toppings.map((topping) => ({ colour: toppingColour(byId.get(topping.optionId)?.code ?? null), side: topping.side, amount: topping.amount })),
+                sauceColour: sauceColour(sauce?.code ?? null), sauceAmount, cheese, width: `min(100%, ${sizeScale(sizeIndex, sizes.length)})`,
+              })}
+            </div>
             ${halves ? `<div style="display:grid;grid-template-columns:1fr 1fr;gap:12px;font-size:13px;line-height:1.5">
               <div><strong style="display:block;color:var(--gold-hover);font-size:11px;letter-spacing:.14em;text-transform:uppercase">Left half</strong>${esc(halfList("left"))}</div>
               <div style="text-align:right"><strong style="display:block;color:var(--gold-hover);font-size:11px;letter-spacing:.14em;text-transform:uppercase">Right half</strong>${esc(halfList("right"))}</div>

@@ -88,17 +88,30 @@ export function sideArt(): string {
 
 /** The art block used on menu cards, basket lines and sheets. */
 export function itemArt(item: MenuItem, extraClass = ""): string {
-  if (itemKind(item) === "pizza" || /pizza/i.test(item.category)) return `<div class="art art-pizza ${extraClass}">${pizzaArt(item)}</div>`;
-  if (/burger|wrap/i.test(`${item.category} ${item.name}`)) return `<div class="art art-burger ${extraClass}">${burgerArt()}</div>`;
-  if (/drink/i.test(item.category)) return `<div class="art art-burger ${extraClass}">${drinkArt(item.name)}</div>`;
-  if (/side/i.test(item.category)) return `<div class="art art-burger ${extraClass}">${sideArt()}</div>`;
+  if (itemKind(item) === "pizza" || /pizza/i.test(item.category)) {
+    const photoSlug = item.slug || item.name.toLowerCase().replace(/[^a-z0-9]+/g, "-");
+    return `<div class="art art-pizza ${extraClass}"><img class="pizza-photo" src="/pizzas/${esc(photoSlug)}.png" alt="${esc(item.name)} pizza" loading="lazy" /></div>`;
+  }
+  if (/burger|wrap/i.test(`${item.category} ${item.name}`)) {
+    const photoSlug = item.slug || item.name.toLowerCase().replace(/[^a-z0-9]+/g, "-");
+    return `<div class="art art-burger ${extraClass}"><img class="food-photo" src="/burgers/${esc(photoSlug)}.png" alt="${esc(item.name)}" loading="lazy" /></div>`;
+  }
+  if (/drink/i.test(item.category)) {
+    const photoSlug = item.slug || item.name.toLowerCase().replace(/[^a-z0-9]+/g, "-");
+    return `<div class="art art-burger ${extraClass}"><img class="food-photo" src="/drinks/${esc(photoSlug)}.png" alt="${esc(item.name)}" loading="lazy" /></div>`;
+  }
+  if (/side/i.test(item.category)) {
+    const photoSlug = item.slug || item.name.toLowerCase().replace(/[^a-z0-9]+/g, "-");
+    return `<div class="art art-burger ${extraClass}"><img class="food-photo" src="/sides/${esc(photoSlug)}.png" alt="${esc(item.name)}" loading="lazy" /></div>`;
+  }
   return `<div class="art art-other ${extraClass}" aria-hidden="true">${esc(item.name.charAt(0))}</div>`;
 }
 
 export function categoryArt(category: string, sample: MenuItem | undefined): string {
-  if (/pizza/i.test(category)) return `<div class="art art-pizza">${pizzaArt(sample ?? { name: "Ivy Suya" }, { width: "120px" })}</div>`;
+  if (sample) return itemArt(sample, "category-photo");
+  if (/pizza/i.test(category)) return `<div class="art art-pizza">${pizzaArt({ name: "Ivy Suya" }, { width: "120px" })}</div>`;
   if (/burger/i.test(category)) return `<div class="art art-burger">${burgerArt()}</div>`;
-  if (/drink/i.test(category)) return `<div class="art art-burger">${drinkArt(sample?.name ?? "Chapman")}</div>`;
+  if (/drink/i.test(category)) return `<div class="art art-burger">${drinkArt("Chapman")}</div>`;
   if (/side/i.test(category)) return `<div class="art art-burger">${sideArt()}</div>`;
   return `<div class="art art-other" aria-hidden="true">${esc(category.charAt(0))}</div>`;
 }

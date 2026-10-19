@@ -1,2 +1,7 @@
 RewriteEngine On
 RewriteRule ^api(/.*)?$ https://api.theivypizza.com/api$1 [R=307,L]
+
+# Storefront routes (/menu, /basket, /checkout, /order/...) are handled by the single-page app.
+RewriteCond %{REQUEST_FILENAME} !-f
+RewriteCond %{REQUEST_FILENAME} !-d
+RewriteRule ^ index.html [L]

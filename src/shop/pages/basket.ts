@@ -2,7 +2,7 @@ import { basketLines, getQuoteState, getVoucherCode, maxLineQuantity, onBasketCh
 import { itemArt } from "../art.js";
 import { esc, money } from "../format.js";
 import { quickAdd, upsellItems } from "../feedback.js";
-import { describeBasketLine, findItem, getMenu, itemKind, onMenuChange, unitPriceMinor } from "../menu-data.js";
+import { describeBasketLine, findItem, getMenu, itemKind, linePriceBreakdown, onMenuChange, unitPriceMinor } from "../menu-data.js";
 import { activeKitchenId, getContext, isLocated, onContextChange, whenLabel } from "../order-context.js";
 import { latestQuote, minimumCheck, unavailableLineIndexes } from "../pricing.js";
 import { navigate } from "../router.js";
@@ -114,6 +114,8 @@ export function renderBasket(view: HTMLElement): () => void {
                 const quoted = quote?.lines[index];
                 const matches = quoted && quoted.menuItemId === line.menuItemId && quoted.quantity === line.quantity;
                 const total = matches ? quoted.lineTotalMinor : item ? unitPriceMinor(item, line) * line.quantity : null;
+                const unit = matches ? quoted.unitPriceMinor : item ? unitPriceMinor(item, line) : null;
+                const priceRows = item ? linePriceBreakdown(item, line).rows : [];
                 const problem = problems.includes(index);
                 const name = item?.name ?? (menuLive ? "No longer on the menu" : "Loading…");
                 const options = item ? describeBasketLine(item, line) : "";
@@ -124,6 +126,8 @@ export function renderBasket(view: HTMLElement): () => void {
                     <div class="bline-top"><b>${esc(name)}</b><span>${total === null ? "—" : esc(money(total))}</span></div>
                     ${options ? `<span class="bline-opts">${esc(options)}</span>` : ""}
                     ${line.instructions ? `<span class="bline-opts" style="font-style:italic">“${esc(line.instructions)}”</span>` : ""}
+                    ${unit !== null && total !== null ? `<div class="bline-unit-math"><span>${esc(money(unit))} each</span><span aria-hidden="true">×</span><span>${line.quantity}</span><span aria-hidden="true">=</span><b>${esc(money(total))} line total</b></div>` : ""}
+                    ${unit !== null && priceRows.length ? `<details class="bline-price-details"><summary>Price breakdown <span>${esc(money(unit))} per pizza</span></summary><div class="bline-price-rows">${priceRows.map((row) => `<div><span>${esc(row.label)}</span><b>${esc(money(row.amountMinor))}</b></div>`).join("")}<div class="bline-price-unit"><span>Each pizza</span><b>${esc(money(unit))}</b></div><p>Each customized pizza × ${line.quantity} ${line.quantity === 1 ? "pizza" : "pizzas"} = ${esc(money(total!))}</p></div></details>` : ""}
                     ${problem ? `<span class="field-error">Unavailable right now</span>` : ""}
                     <div class="bline-acts">
                       <div class="stepper sm" role="group" aria-label="Quantity of ${esc(name)}">
